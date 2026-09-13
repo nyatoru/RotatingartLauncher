@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Must match app/build.gradle.kts:
+  #   compileSdk = 37, ndkVersion = "30.0.14904198 rc1", cmake 3.22.1
+  # NOTE: the sdkmanager package id is "ndk;30.0.14904198" (the "rc1" preview
+  # revision is what AGP matches after install).
+  ANDROID_NDK_PACKAGE: "30.0.14904198"
+  ANDROID_CMAKE_VERSION: "3.22.1"
+
+jobs:
+  build:
+    name: Build Debug APK (arm64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
+
+    steps:
+      - name: Free disk space
+        run: |
+          # Remove preinstalled NDKs/emulator images; we install the exact NDK below
+          sudo rm -rf /usr/local/lib/android/sdk/ndk/* \
+                       /usr/local/lib/android/sdk/emulator \
+                       /usr/local/lib/android/sdk/system-images || true
+          echo "Disk space after cleanup:"
+          df -h /
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Install NDK & CMake
+        run: |
+          sdkmanager --install \
+            "ndk;${ANDROID_NDK_PACKAGE}" \
+            "cmake;${ANDROID_CMAKE_VERSION}"
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-debug-apk-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload build reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-build-reports-${{ github.run_number }}
+          path: |
+            **/build/reports/**
+            *.log
+          retention-days: 7
+          if-no-files-found: ignore

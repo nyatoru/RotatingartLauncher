@@ -34,8 +34,12 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android NDK r28 and CMake
-        run: sdkmanager --install 'ndk;28.0.12433566' 'cmake;3.22.1'
+      # NDK 30.0.14904198 = r30-beta1 (preview)，需先接受许可再安装
+      - name: Accept SDK licenses
+        run: yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Install Android NDK r30-beta1 and CMake
+        run: sdkmanager --install 'ndk;30.0.14904198' 'cmake;3.22.1'
 
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
