@@ -134,6 +134,7 @@ data class AppSettings(
     var serverGC: Boolean = false,
     var concurrentGC: Boolean = true,
     var gcHeapCount: String = "auto",
+    var gcHeapHardLimitPercent: Int = 0,
     var tieredCompilation: Boolean = true,
     var quickJIT: Boolean = true,
     var jitOptimizeType: Int = 0,

@@ -174,6 +174,10 @@ object SettingsAccess {
     val gcHeapCount: String
         get() = settings.gcHeapCount
 
+    var gcHeapHardLimitPercent: Int
+        get() = settings.gcHeapHardLimitPercent
+        set(value) = update { gcHeapHardLimitPercent = value.coerceIn(0, 95) }
+
     val isRetainVM: Boolean
         get() = settings.retainVM
 

@@ -921,6 +921,25 @@ private fun DeveloperSettingsPane(
 
                 SettingsDivider()
 
+                SliderSettingItem(
+                    title = androidStringResource(R.string.settings_developer_gc_heap_limit_title),
+                    subtitle = androidStringResource(R.string.settings_developer_gc_heap_limit_subtitle),
+                    icon = Icons.Default.Memory,
+                    value = gcHeapHardLimitPercent.toFloat(),
+                    valueRange = GC_HEAP_LIMIT_RANGE,
+                    steps = GC_HEAP_LIMIT_STEP_COUNT,
+                    valueLabel = if (gcHeapHardLimitPercent > 0) {
+                        "$gcHeapHardLimitPercent%"
+                    } else {
+                        androidStringResource(R.string.settings_developer_gc_heap_limit_off)
+                    },
+                    onValueChange = {
+                        viewModel.onEvent(SettingsEvent.SetGcHeapHardLimit(it.toInt()))
+                    }
+                )
+
+                SettingsDivider()
+
                 SwitchSettingItem(
                     title = androidStringResource(R.string.settings_developer_tiered_compilation_title),
                     subtitle = androidStringResource(R.string.settings_developer_tiered_compilation_subtitle),
@@ -1176,6 +1195,8 @@ private val BACKGROUND_OPACITY_RANGE = 0f..100f
 private const val BACKGROUND_OPACITY_STEP_COUNT = 9
 private val VIDEO_PLAYBACK_SPEED_RANGE = 0.5f..2.0f
 private const val VIDEO_PLAYBACK_SPEED_STEP_COUNT = 5
+private val GC_HEAP_LIMIT_RANGE = 0f..90f
+private const val GC_HEAP_LIMIT_STEP_COUNT = 8
 private val AUDIO_BUFFER_SIZE_OPTIONS: List<Int?> =
     listOf(null) + (4..10).map { 1 shl it }
 

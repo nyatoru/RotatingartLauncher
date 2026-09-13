@@ -1743,6 +1743,9 @@
     <string name="settings_developer_server_gc_subtitle">使用服务器模式垃圾回收</string>
     <string name="settings_developer_concurrent_gc_title">Concurrent GC</string>
     <string name="settings_developer_concurrent_gc_subtitle">启用并发垃圾回收</string>
+    <string name="settings_developer_gc_heap_limit_title">GC 堆内存上限</string>
+    <string name="settings_developer_gc_heap_limit_subtitle">限制游戏 .NET 堆内存占设备内存的百分比（关闭 = 不限制）</string>
+    <string name="settings_developer_gc_heap_limit_off">关闭</string>
     <string name="settings_developer_tiered_compilation_title">Tiered Compilation</string>
     <string name="settings_developer_tiered_compilation_subtitle">启用分层编译优化</string>
     <string name="settings_developer_fna_section">FNA 优化</string>

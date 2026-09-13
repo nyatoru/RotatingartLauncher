@@ -67,6 +67,7 @@ data class SettingsUiState(
     val killLauncherUIEnabled: Boolean = false,
     val serverGCEnabled: Boolean = true,
     val concurrentGCEnabled: Boolean = true,
+    val gcHeapHardLimitPercent: Int = 0,
     val tieredCompilationEnabled: Boolean = true,
     val coreClrXiaomiCompatEnabled: Boolean = false,
     val fnaMapBufferRangeOptEnabled: Boolean = false,
@@ -120,6 +121,7 @@ sealed class SettingsEvent {
     data class SetKillLauncherUI(val enabled: Boolean) : SettingsEvent()
     data class SetServerGC(val enabled: Boolean) : SettingsEvent()
     data class SetConcurrentGC(val enabled: Boolean) : SettingsEvent()
+    data class SetGcHeapHardLimit(val percent: Int) : SettingsEvent()
     data class SetTieredCompilation(val enabled: Boolean) : SettingsEvent()
     data class SetCoreClrXiaomiCompat(val enabled: Boolean) : SettingsEvent()
     data class SetFnaMapBufferRangeOpt(val enabled: Boolean) : SettingsEvent()
@@ -197,6 +199,7 @@ class SettingsViewModel(
             is SettingsEvent.SetKillLauncherUI -> setKillLauncherUI(event.enabled)
             is SettingsEvent.SetServerGC -> setServerGC(event.enabled)
             is SettingsEvent.SetConcurrentGC -> setConcurrentGC(event.enabled)
+            is SettingsEvent.SetGcHeapHardLimit -> setGcHeapHardLimit(event.percent)
             is SettingsEvent.SetTieredCompilation -> setTieredCompilation(event.enabled)
             is SettingsEvent.SetCoreClrXiaomiCompat -> setCoreClrXiaomiCompat(event.enabled)
             is SettingsEvent.SetFnaMapBufferRangeOpt -> setFnaMapBufferRangeOpt(event.enabled)
@@ -250,6 +253,7 @@ class SettingsViewModel(
                     killLauncherUIEnabled = settings.killLauncherUIAfterLaunch,
                     serverGCEnabled = settings.serverGC,
                     concurrentGCEnabled = settings.concurrentGC,
+                    gcHeapHardLimitPercent = settings.gcHeapHardLimitPercent,
                     tieredCompilationEnabled = settings.tieredCompilation,
                     coreClrXiaomiCompatEnabled = settings.coreClrXiaomiCompatEnabled,
                     fnaMapBufferRangeOptEnabled = settings.fnaMapBufferRangeOptimization,
@@ -519,6 +523,14 @@ class SettingsViewModel(
             settingsRepository.update { concurrentGC = enabled }
             _uiState.update { it.copy(concurrentGCEnabled = enabled) }
             sendEffect(SettingsEffect.ShowToast(getAppString(R.string.settings_restart_required_toast)))
+        }
+    }
+
+    private fun setGcHeapHardLimit(percent: Int) {
+        viewModelScope.launch {
+            val clamped = percent.coerceIn(0, 95)
+            settingsRepository.update { gcHeapHardLimitPercent = clamped }
+            _uiState.update { it.copy(gcHeapHardLimitPercent = clamped) }
         }
     }
 

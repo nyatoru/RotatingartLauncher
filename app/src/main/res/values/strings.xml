@@ -2066,6 +2066,9 @@
     <string name="settings_developer_server_gc_subtitle">Use server-mode garbage collection</string>
     <string name="settings_developer_concurrent_gc_title">Concurrent GC</string>
     <string name="settings_developer_concurrent_gc_subtitle">Enable concurrent garbage collection</string>
+    <string name="settings_developer_gc_heap_limit_title">GC Heap Hard Limit</string>
+    <string name="settings_developer_gc_heap_limit_subtitle">Cap the game\'s .NET heap as a percentage of device RAM (Off = unlimited)</string>
+    <string name="settings_developer_gc_heap_limit_off">Off</string>
     <string name="settings_developer_tiered_compilation_title">Tiered Compilation</string>
     <string name="settings_developer_tiered_compilation_subtitle">Enable tiered compilation optimization</string>
     <string name="settings_developer_fna_section">FNA Optimization</string>

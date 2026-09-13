@@ -33,6 +33,10 @@ object CoreCLRConfig {
             "DOTNET_gcConcurrent" to if (settings.isConcurrentGC) "1" else "0",
             "DOTNET_GCHeapCount" to settings.gcHeapCount.takeIf { it != "auto" },
             "DOTNET_GCRetainVM" to if (settings.isRetainVM) "1" else "0",
+            // GC 堆硬限制（百分比，.NET 要求十六进制格式；0 表示不限制）
+            "DOTNET_GCHeapHardLimitPercent" to settings.gcHeapHardLimitPercent
+                .takeIf { it > 0 }
+                ?.let { Integer.toHexString(it) },
 
             // 应用 JIT 配置
             "DOTNET_TieredCompilation" to if (settings.isTieredCompilation) "1" else "0",
@@ -76,6 +80,9 @@ object CoreCLRConfig {
         sb.append("    Concurrent GC: ").append(if (settings.isConcurrentGC) "启用" else "关闭")
             .append("\n")
         sb.append("    Heap Count: ").append(settings.gcHeapCount).append("\n")
+        if (settings.gcHeapHardLimitPercent > 0) {
+            sb.append("    Heap Hard Limit: ").append(settings.gcHeapHardLimitPercent).append("%\n")
+        }
         sb.append("    Retain VM: ").append(if (settings.isRetainVM) "启用" else "关闭")
             .append("\n")
         sb.append("  JIT:\n")

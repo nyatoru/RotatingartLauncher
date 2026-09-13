@@ -2028,6 +2028,9 @@
     <string name="settings_developer_server_gc_subtitle">Использовать сборку мусора в режиме сервера</string>
     <string name="settings_developer_concurrent_gc_title">Параллельный сбор мусора</string>
     <string name="settings_developer_concurrent_gc_subtitle">Включить параллельную сборку мусора</string>
+    <string name="settings_developer_gc_heap_limit_title">Жёсткий лимит кучи GC</string>
+    <string name="settings_developer_gc_heap_limit_subtitle">Ограничить кучу .NET игры в процентах от ОЗУ устройства (Выкл. = без ограничений)</string>
+    <string name="settings_developer_gc_heap_limit_off">Выкл.</string>
     <string name="settings_developer_tiered_compilation_title">Многоуровневая подборка</string>
     <string name="settings_developer_tiered_compilation_subtitle">Включить многоуровневую оптимизацию компиляции</string>
     <string name="settings_developer_fna_section">Оптимизация ФНА</string>

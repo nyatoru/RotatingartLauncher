@@ -30,8 +30,11 @@ class TextureLoader private constructor(context: Context) {
     companion object {
         private const val TAG = "TextureLoader"
         
-        /** 缓存大小: 可用内存的 1/8 */
-        private val MAX_CACHE_SIZE = (Runtime.getRuntime().maxMemory() / 8).toInt()
+        /** 缓存大小: 可用内存的 1/8，且不超过 32MB（largeHeap 进程下避免缓存过大） */
+        private val MAX_CACHE_SIZE = minOf(
+            Runtime.getRuntime().maxMemory() / 8,
+            32L * 1024 * 1024
+        ).toInt()
         
         /** 支持的图片格式 */
         private val SUPPORTED_IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "webp", "bmp")
@@ -67,6 +70,17 @@ class TextureLoader private constructor(context: Context) {
     
     /** SVG 缓存（缓存 SVG 对象，渲染时按需生成 Bitmap） */
     private val svgCache = LruCache<String, SVG>(50)
+
+    /**
+     * 释放内存缓存（例如游戏启动、系统内存压力大时调用）
+     * 缓存会在下次加载时按需重建，不影响功能
+     */
+    fun trimMemory() {
+        synchronized(this) {
+            bitmapCache.evictAll()
+            svgCache.evictAll()
+        }
+    }
     
     /**
      * 加载纹理

@@ -1,12 +1,15 @@
 package com.app.ralaunch
 
 import android.app.Application
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.res.Configuration
 import android.system.Os
+import coil.imageLoader
 import com.app.ralaunch.core.logging.AppLog
 import androidx.appcompat.app.AppCompatDelegate
 import com.app.ralaunch.feature.controls.packs.ControlPackManager
+import com.app.ralaunch.feature.controls.textures.TextureLoader
 import com.app.ralaunch.core.common.SettingsAccess
 import com.app.ralaunch.core.di.KoinInitializer
 import com.app.ralaunch.core.di.contract.IRuntimeManagerServiceV2
@@ -94,6 +97,35 @@ class RaLaunchApp : Application(), KoinComponent {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         LocaleManager.applyLanguage(this)
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        // 游戏启动（UI 进入后台）或系统内存压力大时，释放缓存为游戏进程腾出内存
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+            level == ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN
+        ) {
+            trimMemoryCaches("onTrimMemory(level=$level)")
+        }
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        trimMemoryCaches("onLowMemory")
+    }
+
+    private fun trimMemoryCaches(reason: String) {
+        try {
+            TextureLoader.getInstance(this).trimMemory()
+        } catch (e: Exception) {
+            AppLog.w(TAG, "Failed to trim texture cache: ${e.message}")
+        }
+        try {
+            imageLoader.memoryCache?.clear()
+        } catch (e: Exception) {
+            AppLog.w(TAG, "Failed to trim image cache: ${e.message}")
+        }
+        AppLog.i(TAG, "Memory caches trimmed ($reason)")
     }
 
     private fun applyThemeFromSettings() {

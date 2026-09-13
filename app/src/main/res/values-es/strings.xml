@@ -2034,6 +2034,9 @@ Invitado: resultado=%3$d%4$s</string>
     <string name="settings_developer_server_gc_subtitle">Usar recolección de basura en modo servidor</string>
     <string name="settings_developer_concurrent_gc_title">GC concurrente</string>
     <string name="settings_developer_concurrent_gc_subtitle">Habilitar recolección de basura concurrente</string>
+    <string name="settings_developer_gc_heap_limit_title">Límite del heap de GC</string>
+    <string name="settings_developer_gc_heap_limit_subtitle">Limita el heap .NET del juego como porcentaje de la RAM del dispositivo (Desactivado = sin límite)</string>
+    <string name="settings_developer_gc_heap_limit_off">Desactivado</string>
     <string name="settings_developer_tiered_compilation_title">Compilación por niveles</string>
     <string name="settings_developer_tiered_compilation_subtitle">Habilitar optimización de compilación por niveles</string>
     <string name="settings_developer_fna_section">Optimización FNA</string>
