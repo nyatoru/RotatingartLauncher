@@ -38,16 +38,6 @@ enum class FloatingMenuMode {
 }
 
 /**
- * 联机状态
- */
-enum class MultiplayerState {
-    DISCONNECTED,
-    CONNECTING,
-    CONNECTED,
-    ERROR
-}
-
-/**
  * 悬浮菜单状态
  */
 @Stable
@@ -75,13 +65,6 @@ class FloatingMenuState(
     
     // 调试日志状态
     var isDebugLogEnabled by mutableStateOf(false)
-    
-    // 联机相关状态
-    var isMultiplayerPanelVisible by mutableStateOf(false)
-    var multiplayerConnectionState by mutableStateOf(MultiplayerState.DISCONNECTED)
-    var multiplayerVirtualIp by mutableStateOf<String?>(null)
-    var multiplayerPeerCount by mutableStateOf(0)
-    var multiplayerIsHost by mutableStateOf(false)  // 是否是房主
     
     // 菜单面板偏移量（可拖动）
     var menuPanelOffset by mutableStateOf(androidx.compose.ui.geometry.Offset.Zero)
@@ -181,32 +164,6 @@ interface FloatingMenuCallbacks {
     // 调试日志回调
     fun onToggleDebugLog() {}
     
-    // 联机相关回调
-    fun onMultiplayerConnect(roomName: String, roomPassword: String, isHost: Boolean) {}
-    fun onMultiplayerDisconnect() {}
-    fun isMultiplayerAvailable(): Boolean = false
-    fun getMultiplayerUnavailableReason(): String = ""
-    
-    /** 检查联机功能是否在设置中启用 */
-    fun isMultiplayerFeatureEnabled(): Boolean = false
-    
-    /** 检查 VPN 权限并请求（如需要） */
-    fun prepareVpnPermission(onGranted: () -> Unit, onDenied: () -> Unit) {
-        // 默认直接调用 onGranted，实际实现在 GameControlsOverlay 中
-        onGranted()
-    }
-    
-    /** 检查是否有 VPN 权限 */
-    fun hasVpnPermission(): Boolean = true
-    
-    /**
-     * 初始化 VPN 服务（创建 TUN 接口）
-     * 在创建房间前调用，VPN 就绪后回调
-     */
-    fun initVpnService(onReady: () -> Unit, onError: (String) -> Unit) {
-        // 默认直接调用 onReady，实际实现在 GameControlsOverlay 中
-        onReady()
-    }
 }
 
 /**
@@ -298,15 +255,6 @@ fun FloatingControlMenu(
                 )
             }
         }
-    }
-    
-    // 联机弹窗 (独立显示)
-    if (state.isMultiplayerPanelVisible) {
-        MultiplayerDialog(
-            state = state,
-            callbacks = callbacks,
-            onDismiss = { state.isMultiplayerPanelVisible = false }
-        )
     }
     
     // 控件布局选择弹窗
@@ -566,35 +514,6 @@ private fun InGameMenu(
 
                         HorizontalDivider()
                     }
-                }
-
-                // 联机功能 - 仅在设置中启用时显示
-                if (callbacks.isMultiplayerFeatureEnabled()) {
-                    MenuRowItem(
-                        icon = Icons.Default.Wifi,
-                        label = when (state.multiplayerConnectionState) {
-                            MultiplayerState.CONNECTED -> when {
-                                state.multiplayerPeerCount > 0 -> stringResource(
-                                    R.string.control_editor_multiplayer_connected_players,
-                                    state.multiplayerPeerCount + 1
-                                )
-                                state.multiplayerIsHost -> stringResource(R.string.control_editor_multiplayer_connected_waiting_join)
-                                else -> stringResource(R.string.control_editor_multiplayer_connected_finding_host)
-                            }
-                            MultiplayerState.CONNECTING -> stringResource(R.string.control_editor_connecting)
-                            else -> stringResource(R.string.control_editor_multiplayer)
-                        },
-                        isActive = state.multiplayerConnectionState == MultiplayerState.CONNECTED,
-                        onClick = { state.isMultiplayerPanelVisible = true },
-                        tint = when (state.multiplayerConnectionState) {
-                            MultiplayerState.CONNECTED -> MaterialTheme.colorScheme.tertiary
-                            MultiplayerState.CONNECTING -> MaterialTheme.colorScheme.secondary
-                            MultiplayerState.ERROR -> MaterialTheme.colorScheme.error
-                            else -> Color.Unspecified
-                        }
-                    )
-
-                    HorizontalDivider()
                 }
 
                 // 隐藏悬浮球

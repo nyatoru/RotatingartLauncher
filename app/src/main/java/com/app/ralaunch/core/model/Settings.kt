@@ -148,10 +148,6 @@ data class AppSettings(
     var sdlAaudioLowLatency: Boolean = false,
     var ralAudioBufferSize: Int? = null,
 
-    // 联机设置
-    var multiplayerEnabled: Boolean = false,
-    var multiplayerDisclaimerAccepted: Boolean = false,
-
     // 公告
     var lastAnnouncementId: String = "",
     var isAnnouncementBadgeShown: Boolean = false,

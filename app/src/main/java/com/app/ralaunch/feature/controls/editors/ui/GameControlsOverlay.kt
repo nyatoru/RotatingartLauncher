@@ -11,7 +11,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.Modifier
@@ -35,8 +34,6 @@ import com.app.ralaunch.feature.controls.textures.TextureLoader
 import com.app.ralaunch.feature.controls.ui.ControlLayout as ControlLayoutView
 import com.app.ralaunch.feature.controls.ui.GridOverlayView
 import com.app.ralaunch.core.common.SettingsAccess
-import com.app.ralaunch.core.platform.network.easytier.EasyTierConnectionState
-import com.app.ralaunch.core.platform.network.easytier.EasyTierManager
 import kotlinx.coroutines.flow.SharedFlow
 import java.io.File
 
@@ -59,35 +56,15 @@ fun GameControlsOverlay(
     val menuState = rememberFloatingMenuState()
     val context = LocalContext.current
     
-    // EasyTier 管理器
-    val easyTierManager = remember { EasyTierManager.getInstance() }
-    val connectionState by easyTierManager.connectionState.collectAsState()
-    val virtualIp by easyTierManager.virtualIp.collectAsState()
-    val peers by easyTierManager.peers.collectAsState()
-    val scope = rememberCoroutineScope()
-    
-    // 同步联机状态到菜单
-    LaunchedEffect(connectionState, virtualIp, peers) {
-        menuState.multiplayerConnectionState = when (connectionState) {
-            EasyTierConnectionState.DISCONNECTED -> MultiplayerState.DISCONNECTED
-            EasyTierConnectionState.CONNECTING -> MultiplayerState.CONNECTING
-            EasyTierConnectionState.FINDING_HOST -> MultiplayerState.CONNECTING  // 寻找房主也显示为连接中
-            EasyTierConnectionState.CONNECTED -> MultiplayerState.CONNECTED
-            EasyTierConnectionState.ERROR -> MultiplayerState.ERROR
-        }
-        menuState.multiplayerVirtualIp = virtualIp
-        menuState.multiplayerPeerCount = peers.size
-    }
-    
     // 调试日志状态
     val debugLogVisible by ConsoleManager.debugLogVisible.collectAsState()
-    
-    // 初始化菜单状态 & 启动日志收集
+    val consoleVisible by ConsoleManager.consoleVisible.collectAsState()
+
+    // 初始化菜单状态（日志收集延迟到用户实际打开调试日志/控制台时启动）
     LaunchedEffect(Unit) {
         menuState.isFpsDisplayEnabled = settingsManager.isFPSDisplayEnabled
         menuState.isTouchEventEnabled = settingsManager.isTouchEventEnabled
-        ConsoleManager.start()
-        
+
         // 初始化布局切换状态（优先使用快速切换列表，如果为空则显示全部）
         val quickSwitchPacks = packManager.getQuickSwitchPacks()
         val packsToShow = quickSwitchPacks.ifEmpty { packManager.getInstalledPacks() }
@@ -95,9 +72,13 @@ fun GameControlsOverlay(
         menuState.activePackId = packManager.getSelectedPackId()
     }
     
-    // 同步调试日志状态到菜单
-    LaunchedEffect(debugLogVisible) {
+    // 同步调试日志状态到菜单；仅在用户打开调试日志/控制台后才启动 logcat 收集，
+    // 避免游戏期间常驻的日志读取线程与缓冲开销
+    LaunchedEffect(debugLogVisible, consoleVisible) {
         menuState.isDebugLogEnabled = debugLogVisible
+        if (debugLogVisible || consoleVisible) {
+            ConsoleManager.start()
+        }
     }
     
     // 监听返回键切换悬浮球可见性
@@ -298,43 +279,7 @@ fun GameControlsOverlay(
             override fun onToggleDebugLog() {
                 ConsoleManager.toggleDebugLog()
             }
-            
-            // 联机相关回调
-            override fun onMultiplayerConnect(roomName: String, roomPassword: String, isHost: Boolean) {
-                menuState.multiplayerIsHost = isHost  // 记录是否是房主
-                scope.launch {
-                    easyTierManager.connect(roomName, roomPassword, isHost = isHost)
-                }
-            }
-            
-            override fun onMultiplayerDisconnect() {
-                menuState.multiplayerIsHost = false  // 重置房主标记
-                easyTierManager.disconnect(context)
-            }
-            
-            override fun isMultiplayerAvailable(): Boolean {
-                return easyTierManager.isAvailable()
-            }
-            
-            override fun getMultiplayerUnavailableReason(): String {
-                return easyTierManager.getUnavailableReason()
-            }
-            
-            override fun isMultiplayerFeatureEnabled(): Boolean {
-                return settingsManager.isMultiplayerEnabled
-            }
-            
-            // no_tun 模式下 VPN 权限不再需要，保留接口兼容
-            override fun prepareVpnPermission(onGranted: () -> Unit, onDenied: () -> Unit) {
-                onGranted()
-            }
-            
-            override fun hasVpnPermission(): Boolean = true
-            
-            override fun initVpnService(onReady: () -> Unit, onError: (String) -> Unit) {
-                onReady()
-            }
-            
+
             // ========== 布局切换回调 ==========
             
             override fun onSwitchPack(packId: String) {

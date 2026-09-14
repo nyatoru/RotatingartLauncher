@@ -52,10 +52,6 @@ data class SettingsUiState(
     val selectedDotNetRuntimeVersion: String? = null,
     val installedDotNetRuntimeVersions: List<String> = emptyList(),
 
-    // 启动器设置
-    val multiplayerEnabled: Boolean = false,
-    val multiplayerDisclaimerAccepted: Boolean = false,
-
     // 画质设置
     val qualityLevel: QualityLevel = QualityLevel.HIGH,
     val shaderLowPrecision: Boolean = false,
@@ -105,10 +101,6 @@ sealed class SettingsEvent {
     data class SetRalAudioBufferSize(val size: Int?) : SettingsEvent()
     data class SetRenderer(val renderer: String) : SettingsEvent()
     data class SetDotNetRuntimeVersion(val version: String) : SettingsEvent()
-
-    // 启动器
-    data class SetMultiplayerEnabled(val enabled: Boolean) : SettingsEvent()
-    data object AcceptMultiplayerDisclaimer : SettingsEvent()
 
     // 画质
     data class SetQualityLevel(val level: QualityLevel) : SettingsEvent()
@@ -184,10 +176,6 @@ class SettingsViewModel(
             is SettingsEvent.SetRenderer -> setRenderer(event.renderer)
             is SettingsEvent.SetDotNetRuntimeVersion -> setDotNetRuntimeVersion(event.version)
 
-            // 启动器
-            is SettingsEvent.SetMultiplayerEnabled -> setMultiplayerEnabled(event.enabled)
-            is SettingsEvent.AcceptMultiplayerDisclaimer -> acceptMultiplayerDisclaimer()
-
             // 画质
             is SettingsEvent.SetQualityLevel -> setQualityLevel(event.level)
             is SettingsEvent.SetShaderLowPrecision -> setShaderLowPrecision(event.enabled)
@@ -240,9 +228,6 @@ class SettingsViewModel(
                         .trim()
                         .ifBlank { null },
                     installedDotNetRuntimeVersions = installedDotNetRuntimeVersions,
-                    // 启动器
-                    multiplayerEnabled = settings.multiplayerEnabled,
-                    multiplayerDisclaimerAccepted = settings.multiplayerDisclaimerAccepted,
                     // 画质
                     qualityLevel = QualityLevel.fromValue(settings.qualityLevel),
                     shaderLowPrecision = settings.shaderLowPrecision,
@@ -413,30 +398,6 @@ class SettingsViewModel(
                     getAppString(R.string.main_runtime_switched, normalized)
                 )
             )
-        }
-    }
-
-    // ==================== 启动器设置 ====================
-
-    private fun setMultiplayerEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            settingsRepository.update { multiplayerEnabled = enabled }
-            _uiState.update { it.copy(multiplayerEnabled = enabled) }
-        }
-    }
-
-    private fun acceptMultiplayerDisclaimer() {
-        viewModelScope.launch {
-            settingsRepository.update {
-                multiplayerDisclaimerAccepted = true
-                multiplayerEnabled = true
-            }
-            _uiState.update {
-                it.copy(
-                    multiplayerDisclaimerAccepted = true,
-                    multiplayerEnabled = true
-                )
-            }
         }
     }
 

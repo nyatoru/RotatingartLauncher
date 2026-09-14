@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.provider.Settings
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -126,6 +127,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.system.exitProcess
 import org.koin.compose.KoinContext
 import org.koin.compose.viewmodel.koinViewModel
 import java.io.File
@@ -576,7 +578,15 @@ class MainActivityCompose : BaseActivity() {
                     }
                     is MainUiEffect.OpenUrl -> openExternalUrl(effect.url)
                     is MainUiEffect.Navigate -> navState.handleEvent(effect.event)
-                    is MainUiEffect.ExitLauncher -> finishAffinity()
+                    is MainUiEffect.ExitLauncher -> {
+                        finishAffinity()
+                        // finishAffinity 只结束 Activity，主进程仍驻留并持有堆内存。
+                        // 延迟退出主进程以真正释放启动器内存；游戏运行在独立 :game 进程，不受影响。
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            Process.killProcess(Process.myPid())
+                            exitProcess(0)
+                        }, 300)
+                    }
                 }
             }
         }

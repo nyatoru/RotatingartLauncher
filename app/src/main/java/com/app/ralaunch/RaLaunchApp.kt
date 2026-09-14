@@ -180,8 +180,11 @@ class RaLaunchApp : Application(), KoinComponent {
 
     /**
      * 后台安装补丁
+     * 仅在主进程执行：补丁安装结果存储在磁盘上，:game / :launcher 进程直接读取共享结果，
+     * 避免在游戏启动关键路径上重复解包 APK 内的 assets/patches。
      */
     private fun installPatchesInBackground() {
+        if (!isMainAppProcess()) return
         _patchManager?.let { manager ->
             Thread({
                 try {

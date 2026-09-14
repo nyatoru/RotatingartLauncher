@@ -61,7 +61,6 @@ import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -626,7 +625,6 @@ private fun LauncherSettingsPane(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var showMultiplayerDisclaimerDialog by remember { mutableStateOf(false) }
     var showAssetCheckDialog by remember { mutableStateOf(false) }
     var showForceAssetReinstallDialog by remember { mutableStateOf(false) }
     var assetCheckResult by remember { mutableStateOf<AssetIntegrityChecker.CheckResult?>(null) }
@@ -678,26 +676,6 @@ private fun LauncherSettingsPane(
             )
         }
 
-        SettingsSection(title = androidStringResource(R.string.multiplayer_settings)) {
-            SwitchSettingItem(
-                title = androidStringResource(R.string.settings_launcher_enable_multiplayer_title),
-                subtitle = androidStringResource(R.string.settings_launcher_enable_multiplayer_subtitle),
-                icon = Icons.Default.Wifi,
-                checked = uiState.multiplayerEnabled,
-                onCheckedChange = { enabled ->
-                    if (enabled) {
-                        if (!uiState.multiplayerDisclaimerAccepted) {
-                            showMultiplayerDisclaimerDialog = true
-                        } else {
-                            viewModel.onEvent(SettingsEvent.SetMultiplayerEnabled(true))
-                        }
-                    } else {
-                        viewModel.onEvent(SettingsEvent.SetMultiplayerEnabled(false))
-                    }
-                }
-            )
-        }
-
         SettingsSection(title = androidStringResource(R.string.patch_management)) {
             ClickableSettingItem(
                 title = androidStringResource(R.string.patch_management),
@@ -715,21 +693,6 @@ private fun LauncherSettingsPane(
                 onClick = { forceReinstallPatches(context) }
             )
         }
-    }
-
-    if (showMultiplayerDisclaimerDialog) {
-        MultiplayerDisclaimerDialog(
-            onConfirm = {
-                showMultiplayerDisclaimerDialog = false
-                viewModel.onEvent(SettingsEvent.AcceptMultiplayerDisclaimer)
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.settings_multiplayer_enabled),
-                    Toast.LENGTH_SHORT
-                ).show()
-            },
-            onDismiss = { showMultiplayerDisclaimerDialog = false }
-        )
     }
 
     if (showForceAssetReinstallDialog) {

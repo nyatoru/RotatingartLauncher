@@ -13,7 +13,7 @@ import java.io.InputStreamReader
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * 命令控制台管理器（单例）
@@ -44,7 +44,7 @@ object ConsoleManager {
         val display: String get() = "[$timestamp] [$level/$tag] $message"
     }
 
-    private var nextId = java.util.concurrent.atomic.AtomicLong(0)
+    private var nextId = AtomicLong(0)
 
     enum class LogLevel { V, D, I, W, E }
 
@@ -64,8 +64,12 @@ object ConsoleManager {
     private val _debugLogVisible = MutableStateFlow(false)
     val debugLogVisible: StateFlow<Boolean> = _debugLogVisible.asStateFlow()
 
-    private val logBuffer = CopyOnWriteArrayList<LogEntry>()
+    // ponytail: ArrayDeque + 锁 替代 CopyOnWriteArrayList，
+    // 避免每条日志 O(n) 数组拷贝（add/removeAt(0) 各一次）
+    private val logBuffer = ArrayDeque<LogEntry>()
+    private val logBufferLock = Any()
     private var logcatThread: Thread? = null
+    @Volatile
     private var isRunning = false
     private val timeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
@@ -116,13 +120,19 @@ object ConsoleManager {
      * 手动添加一条日志
      */
     fun addLog(entry: LogEntry) {
-        logBuffer.add(entry)
-        // 裁剪缓冲
-        while (logBuffer.size > MAX_LOG_LINES) {
-            logBuffer.removeAt(0)
+        val snapshot: List<LogEntry>
+        val recent: List<LogEntry>
+        synchronized(logBufferLock) {
+            logBuffer.addLast(entry)
+            // 裁剪缓冲
+            while (logBuffer.size > MAX_LOG_LINES) {
+                logBuffer.removeFirst()
+            }
+            snapshot = logBuffer.toList()
+            recent = logBuffer.takeLast(MAX_DEBUG_LOG_LINES)
         }
-        _logs.value = logBuffer.toList()
-        _recentLogs.value = logBuffer.takeLast(MAX_DEBUG_LOG_LINES)
+        _logs.value = snapshot
+        _recentLogs.value = recent
 
         // 智能提示：检测服务器输出并给出操作提示
         if (entry.tag != HINT_TAG) {
@@ -268,7 +278,9 @@ object ConsoleManager {
     }
 
     fun clearLogs() {
-        logBuffer.clear()
+        synchronized(logBufferLock) {
+            logBuffer.clear()
+        }
         _logs.value = emptyList()
         _recentLogs.value = emptyList()
     }

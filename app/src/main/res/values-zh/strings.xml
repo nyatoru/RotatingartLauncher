@@ -162,8 +162,6 @@
     <string name="settings_launcher_check_integrity_title">检查资产完整性</string>
     <string name="settings_launcher_check_integrity_subtitle">检查库文件和资源是否完整</string>
     <string name="settings_launcher_reextract_runtime_subtitle">如果游戏启动失败，尝试重新解压</string>
-    <string name="settings_launcher_enable_multiplayer_title">启用联机功能</string>
-    <string name="settings_launcher_enable_multiplayer_subtitle">开启后可在游戏内使用 P2P 联机功能</string>
     <string name="settings_quality_high">高画质</string>
     <string name="settings_quality_medium">中画质</string>
     <string name="settings_quality_low">低画质</string>
@@ -726,6 +724,7 @@
 
     <!-- GameLaunchDelegate 消息 -->
     <string name="game_launch_failed">启动失败</string>
+    <string name="game_low_memory_warning">内存不足：仅剩 %.1f GB 可用，游戏可能被系统终止。请关闭后台应用或减少大型 Mod。</string>
     <string name="game_launch_assembly_path_empty">程序集路径为空</string>
     <string name="game_launch_assembly_not_exist">程序集文件不存在: %s</string>
     <string name="game_launch_set_params_failed">设置启动参数失败: %s</string>
@@ -1144,34 +1143,8 @@
     <string name="nav_control">控制</string>
     <string name="nav_download">下载</string>
     <string name="nav_add_game">添加游戏</string>
-    <string name="nav_multiplayer">联机</string>
     <string name="nav_settings">设置</string>
     
-    <!-- Multiplayer -->
-    <string name="multiplayer_title">联机</string>
-    <string name="multiplayer_settings">联机设置</string>
-    <string name="multiplayer_network_name">网络名称</string>
-    <string name="multiplayer_network_name_hint">输入房间名称</string>
-    <string name="multiplayer_network_secret">网络密钥</string>
-    <string name="multiplayer_network_secret_hint">输入房间密码</string>
-    <string name="multiplayer_status_disconnected">未连接</string>
-    <string name="multiplayer_status_connecting">正在连接...</string>
-    <string name="multiplayer_status_connected">已连接</string>
-    <string name="multiplayer_join_network">加入网络</string>
-    <string name="multiplayer_disconnect">断开连接</string>
-    <string name="multiplayer_network_nodes">网络节点</string>
-    <string name="multiplayer_local_node">本机</string>
-    <string name="multiplayer_online">在线</string>
-    <string name="multiplayer_waiting_players">等待其他玩家...</string>
-    <string name="multiplayer_share_hint">分享网络名称和密钥给好友\n让他们加入同一个网络</string>
-    <string name="multiplayer_not_connected">未连接网络</string>
-    <string name="multiplayer_connect_hint">输入网络名称和密钥后点击\"加入网络\"开始联机</string>
-    <string name="multiplayer_powered_by">基于 EasyTier P2P 组网\n支持 NAT 穿透，无需公网 IP</string>
-    <string name="multiplayer_connection_error">连接错误</string>
-    <string name="multiplayer_connect_failed">连接失败: %s</string>
-    <string name="multiplayer_disconnect_failed">断开失败: %s</string>
-    <string name="multiplayer_nodes_count">%d 个节点</string>
-    <string name="multiplayer_unknown_host">未知主机</string>
     
     <!-- Control Layout Menu -->
     <string name="action_edit_layout">编辑布局</string>
@@ -1434,7 +1407,6 @@
     <string name="control_editor_clear_all">清空</string>
     <string name="control_editor_collapse_menu">收起菜单</string>
     <string name="control_editor_component_library">组件库</string>
-    <string name="control_editor_connecting">连接中...</string>
     <string name="control_editor_custom_shape">自定义形状</string>
     <string name="control_editor_custom_shape_hint">使用纹理透明度作为控件形状，透明区域不响应点击</string>
     <string name="control_editor_custom_texture">自定义纹理</string>
@@ -1491,38 +1463,6 @@
     <string name="control_editor_mouse_range_hint">控制鼠标可移动的屏幕区域（从中心向各方向扩展的比例）</string>
     <string name="control_editor_mousewheel_label">滚轮</string>
     <string name="control_editor_mousewheel_settings">滚轮设置</string>
-    <string name="control_editor_multiplayer">联机</string>
-    <string name="control_editor_multiplayer_auto_create_hint">自动创建房间并生成邀请码</string>
-    <string name="control_editor_multiplayer_click_host_left">点击左侧「我想当房主」</string>
-    <string name="control_editor_multiplayer_connected">已连接</string>
-    <string name="control_editor_multiplayer_connected_finding_host">已连接 (寻找房主)</string>
-    <string name="control_editor_multiplayer_connected_waiting_join">已连接 (等待加入)</string>
-    <string name="control_editor_multiplayer_connecting_public_server">正在连接公共服务器...</string>
-    <string name="control_editor_multiplayer_connecting_room">正在连接房间...</string>
-    <string name="control_editor_multiplayer_copied">已复制</string>
-    <string name="control_editor_multiplayer_copied_to_clipboard">已复制到剪贴板</string>
-    <string name="control_editor_multiplayer_copy_invite_code">复制邀请码</string>
-    <string name="control_editor_multiplayer_create_and_generate_code">创建房间并生成邀请码</string>
-    <string name="control_editor_multiplayer_creating_room">正在创建房间...</string>
-    <string name="control_editor_multiplayer_creating_short">正在创建...</string>
-    <string name="control_editor_multiplayer_diagnostics">联机诊断</string>
-    <string name="control_editor_multiplayer_disconnect">断开连接</string>
-    <string name="control_editor_multiplayer_enter_invite_code">输入房主提供的邀请码</string>
-    <string name="control_editor_multiplayer_game_connect_address">游戏连接地址</string>
-    <string name="control_editor_multiplayer_game_ports">游戏端口：泰拉瑞亚 7777 / 星露谷 24642</string>
-    <string name="control_editor_multiplayer_game_server_address">游戏服务器地址</string>
-    <string name="control_editor_multiplayer_invalid_invite_code">无效的邀请码</string>
-    <string name="control_editor_multiplayer_invite_code">邀请码</string>
-    <string name="control_editor_multiplayer_i_want_guest">我想当房客</string>
-    <string name="control_editor_multiplayer_i_want_host">我想当房主</string>
-    <string name="control_editor_multiplayer_menu">联机菜单</string>
-    <string name="control_editor_multiplayer_room_created">房间已创建</string>
-    <string name="control_editor_multiplayer_searching_host">正在寻找房主...</string>
-    <string name="control_editor_multiplayer_select_mode">请选择联机方式</string>
-    <string name="control_editor_multiplayer_share_invite_code">分享邀请码给好友</string>
-    <string name="control_editor_multiplayer_share_invite_code_hint">分享邀请码给好友加入房间</string>
-    <string name="control_editor_multiplayer_unavailable">联机功能不可用</string>
-    <string name="control_editor_multiplayer_waiting_players">等待玩家加入...</string>
     <string name="control_editor_not_selected">未选择</string>
     <string name="control_editor_paste">粘贴</string>
     <string name="control_editor_polygon">多边形</string>
@@ -1580,10 +1520,6 @@
     <string name="asset_check_checking_message">正在检查资产完整性...</string>
     <string name="asset_check_auto_fix_tip">点击「自动修复」可尝试修复上述问题。</string>
     <string name="asset_check_auto_fix">自动修复</string>
-    <string name="multiplayer_disclaimer_title">联机功能声明</string>
-    <string name="multiplayer_disclaimer_intro">联机功能使用 EasyTier (LGPL-3.0) 第三方开源组件，在使用过程中所遇到的问题请通过相关渠道进行反馈。</string>
-    <string name="multiplayer_disclaimer_p2p">联机功能使用 P2P 技术，联机成功后房间内用户之间将直接连接。不会使用第三方服务器对您的流量进行转发。最终联机体验和参与联机者的网络情况有较大关系。</string>
-    <string name="multiplayer_disclaimer_legal">在多人联机全过程中，您必须严格遵守您所在国家与地区的全部法律法规。</string>
     <string name="import_new_game_title">导入新游戏</string>
     <string name="import_detected_modloader_label">检测到模组加载器</string>
     <string name="import_detected_game_label">检测到游戏</string>
@@ -1848,45 +1784,6 @@
     <string name="install_tmodloader">安装 tModLoader...</string>
     <string name="install_tmodloader_with_detail">安装 tModLoader: %1$s</string>
     <string name="install_tmodloader_copy_files">复制 tModLoader 文件...</string>
-    <string name="easytier_diag_checking">JNI 库加载检查</string>
-    <string name="easytier_diag_jni_loaded">JNI 库已加载</string>
-    <string name="easytier_diag_jni_load_failed">未知错误</string>
-    <string name="easytier_diag_skipped_jni_unavailable">跳过：JNI 库不可用</string>
-    <string name="easytier_diag_skipped">跳过</string>
-    <string name="easytier_diag_generating_configs">配置生成</string>
-    <string name="easytier_diag_detail_config_preview">Host 配置 (%1$d 字符):\n%2$s...\n\nGuest 配置 (%3$d 字符):\n%4$s...</string>
-    <string name="easytier_diag_config_generated">配置生成</string>
-    <string name="easytier_diag_parsing_host_config">配置解析测试</string>
-    <string name="easytier_diag_config_parse_success">配置解析测试</string>
-    <string name="easytier_diag_skipped_config_parse_failed">跳过：配置解析失败</string>
-    <string name="easytier_diag_starting_guest_instance">网络实例启动</string>
-    <string name="easytier_diag_instance_start_success">网络实例启动</string>
-    <string name="easytier_diag_instance_start_failed">网络实例启动</string>
-    <string name="easytier_diag_skipped_instance_not_started">跳过：实例未启动</string>
-    <string name="easytier_diag_waiting_network_init">网络信息收集</string>
-    <string name="easytier_diag_network_collect_empty">网络信息收集</string>
-    <string name="easytier_diag_port_checking">端口监听检测 (7777)</string>
-    <string name="easytier_diag_port_listening">端口监听检测 (7777)</string>
-    <string name="easytier_diag_port_listening_detail">端口 7777 已在监听</string>
-    <string name="easytier_diag_port_not_listening">端口监听检测 (7777)</string>
-    <string name="easytier_diag_port_not_listening_detail">端口 7777 未在监听</string>
-    <string name="easytier_diag_stopping_test_instance">清理测试实例</string>
-    <string name="easytier_diag_cleanup_done">清理测试实例</string>
-    <string name="easytier_jni_not_loaded">EasyTier JNI 库未加载</string>
-    <string name="easytier_jni_not_loaded_with_reason">EasyTier JNI 库未加载: %1$s</string>
-    <string name="easytier_error_config_parse_failed">配置解析失败</string>
-    <string name="easytier_error_instance_start_failed">网络实例启动失败</string>
-    <string name="easytier_vpn_status_initializing">正在初始化 VPN...</string>
-    <string name="easytier_vpn_error_create_interface">无法创建 VPN 接口</string>
-    <string name="easytier_vpn_status_ready">VPN 已就绪</string>
-    <string name="easytier_vpn_status_connecting">正在连接...</string>
-    <string name="easytier_vpn_status_connect_failed">连接失败: %1$s</string>
-    <string name="easytier_vpn_status_tun_set_failed">TUN 设置失败: %1$s</string>
-    <string name="easytier_vpn_status_connected">已连接 - %1$s</string>
-    <string name="easytier_vpn_status_error">错误: %1$s</string>
-    <string name="easytier_vpn_channel_name">EasyTier 联机</string>
-    <string name="easytier_vpn_channel_description">EasyTier VPN 连接状态</string>
-    <string name="easytier_vpn_notification_title">EasyTier 联机</string>
     <string name="runtime_extract_prepare">准备解压运行时库...</string>
     <string name="runtime_extract_entry">解压: %1$s</string>
     <string name="runtime_extract_incomplete_missing">解压不完整，缺少: %1$s</string>
@@ -1898,10 +1795,6 @@
     <string name="control_editor_radial_sector_count">扇区数量: %1$d</string>
     <string name="control_editor_expand_animation_ms">展开动画: %1$dms</string>
     <string name="control_editor_current_layout">当前: %1$s</string>
-    <string name="control_editor_multiplayer_connected_players">联机中 (%1$d人)</string>
-    <string name="control_editor_multiplayer_online_count">在线人数: %1$d</string>
-    <string name="control_editor_multiplayer_host_game_address_hint">房主开服后，其他玩家在游戏中连接 %1$s:端口</string>
-    <string name="control_editor_multiplayer_guest_game_address_hint">在游戏「多人游戏」→「通过IP加入」输入 %1$s:端口</string>
     <string name="control_editor_polygon_vertex_count">%1$d 个顶点</string>
     <string name="control_editor_grid_density">网格密度: %1$d×%1$d</string>
     <string name="control_editor_sector_label_number">扇区 %1$d</string>
@@ -1960,7 +1853,6 @@
     <string name="settings_cache_cleared">缓存已清除</string>
     <string name="settings_clear_cache_failed">清除缓存失败</string>
     <string name="settings_logs_cleared">日志已清除</string>
-    <string name="settings_multiplayer_enabled">联机功能已启用</string>
     <string name="settings_fix_restart_required">请重启应用以完成修复</string>
     <string name="settings_fix_failed">修复失败: %1$s</string>
     <string name="settings_reextract_runtime_title">重新解压运行时库</string>
@@ -1981,16 +1873,6 @@
     <string name="shared_patch_not_supported_for_game">补丁不支持此游戏</string>
     <string name="control_layout_created">新布局已创建</string>
     <string name="settings_open_source_licenses">开源许可</string>
-    <string name="easytier_diag_config_generate_failed">配置生成失败: %1$s</string>
-    <string name="easytier_diag_network_collect_success">收集到 %1$d 个实例，%2$d 个运行中，%3$d 个节点</string>
-    <string name="easytier_diag_cleanup_failed">清理测试实例失败: %1$s</string>
-    <string name="easytier_diag_detail_last_error">getLastError() = %1$s</string>
-    <string name="easytier_diag_detail_parse_result">hostParseResult=%1$d, guestParseResult=%2$d</string>
-    <string name="easytier_diag_detail_error_suffix">, 错误=%1$s</string>
-    <string name="easytier_diag_detail_run_result">runResult=%1$d</string>
-    <string name="easytier_diag_detail_run_failure">runResult=%1$d, error=%2$s</string>
-    <string name="easytier_diag_detail_json_preview">JSON 长度: %1$d\n%2$s</string>
-    <string name="easytier_diag_detail_json_empty">JSON 长度: %1$d, 内容: %2$s</string>
     <string name="crash_error_message_label">错误信息</string>
     <string name="crash_exit_code_label">退出代码</string>
     <string name="crash_native_error_label">C层错误</string>
@@ -2027,11 +1909,7 @@
     <string name="pack_author_version_compact">%1$s • v%2$s</string>
     <string name="about_build_label">构建</string>
     <string name="documents_provider_root_summary">RaLaunch</string>
-    <string name="easytier_diag_exception">异常：%1$s</string>
-    <string name="easytier_diag_config_parse_failed">配置解析失败</string>
-    <string name="easytier_diag_detail_parse_failure">Host: 结果=%1$d%2$s\nGuest: 结果=%3$d%4$s</string>
     <string name="control_editor_wasd_keys">WASD</string>
-    <string name="control_editor_multiplayer_invite_code_placeholder">U/XXXX-XXXX-XXXX</string>
     <string name="control_editor_snap_threshold_value">10px</string>
     <string name="asset_check_component_dotnet_runtime">.NET 运行时</string>
     <string name="asset_check_status_dotnet_installed_versions">✓ .NET 运行时（%1$s）</string>

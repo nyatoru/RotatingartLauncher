@@ -164,8 +164,6 @@
     <string name="settings_launcher_check_integrity_title">Check Asset Integrity</string>
     <string name="settings_launcher_check_integrity_subtitle">Check whether runtime libraries and resources are complete</string>
     <string name="settings_launcher_reextract_runtime_subtitle">If game launch fails, try re-extracting runtime libraries</string>
-    <string name="settings_launcher_enable_multiplayer_title">Enable Multiplayer</string>
-    <string name="settings_launcher_enable_multiplayer_subtitle">Enable in-game P2P multiplayer support</string>
     <string name="settings_quality_high">High Quality</string>
     <string name="settings_quality_medium">Medium Quality</string>
     <string name="settings_quality_low">Low Quality</string>
@@ -745,6 +743,7 @@
 
     <!-- GameLaunchDelegate Messages -->
     <string name="game_launch_failed">Launch Failed</string>
+    <string name="game_low_memory_warning">Low memory: only %.1f GB free — the game may be killed. Close background apps or reduce large mods.</string>
     <string name="game_launch_invalid_params_conflict">Invalid launch parameters: conflicting launch modes</string>
     <string name="game_launch_no_params">No launch parameters provided</string>
     <string name="game_launch_assembly_path_empty">Assembly path is empty</string>
@@ -1437,33 +1436,7 @@
     <string name="init_extraction_failed_simple">Extraction failed</string>
 
     <!-- Navigation -->
-    <string name="nav_multiplayer">Multiplayer</string>
 
-    <!-- Multiplayer / EasyTier -->
-    <string name="multiplayer_title">Multiplayer</string>
-    <string name="multiplayer_settings">Multiplayer Settings</string>
-    <string name="multiplayer_network_name">Network Name</string>
-    <string name="multiplayer_network_name_hint">Enter room name</string>
-    <string name="multiplayer_network_secret">Network Secret</string>
-    <string name="multiplayer_network_secret_hint">Enter room password</string>
-    <string name="multiplayer_status_disconnected">Disconnected</string>
-    <string name="multiplayer_status_connecting">Connecting...</string>
-    <string name="multiplayer_status_connected">Connected</string>
-    <string name="multiplayer_join_network">Join Network</string>
-    <string name="multiplayer_disconnect">Disconnect</string>
-    <string name="multiplayer_network_nodes">Network Nodes</string>
-    <string name="multiplayer_local_node">Local</string>
-    <string name="multiplayer_online">Online</string>
-    <string name="multiplayer_waiting_players">Waiting for players...</string>
-    <string name="multiplayer_share_hint">Share network name and secret with friends so they can join the same network</string>
-    <string name="multiplayer_not_connected">Not connected</string>
-    <string name="multiplayer_connect_hint">Enter network name and secret, then tap \"Join Network\" to start</string>
-    <string name="multiplayer_powered_by">Powered by EasyTier P2P. NAT traversal, no public IP required.</string>
-    <string name="multiplayer_connection_error">Connection error</string>
-    <string name="multiplayer_connect_failed">Connect failed: %s</string>
-    <string name="multiplayer_disconnect_failed">Disconnect failed: %s</string>
-    <string name="multiplayer_nodes_count">%d nodes</string>
-    <string name="multiplayer_unknown_host">Unknown host</string>
     <string name="documents_provider_root_summary">RaLaunch</string>
 
     <!-- Platform: Process launcher -->
@@ -1473,63 +1446,8 @@
     <string name="process_launcher_status_starting">%1$s is starting...</string>
     <string name="process_launcher_status_running">%1$s is running</string>
 
-    <!-- Platform: EasyTier VPN service -->
-    <string name="easytier_vpn_channel_name">EasyTier Multiplayer</string>
-    <string name="easytier_vpn_channel_description">EasyTier VPN connection status</string>
-    <string name="easytier_vpn_notification_title">EasyTier Multiplayer</string>
-    <string name="easytier_vpn_error_create_interface">Unable to create VPN interface</string>
-    <string name="easytier_vpn_status_initializing">Initializing VPN...</string>
-    <string name="easytier_vpn_status_ready">VPN is ready</string>
-    <string name="easytier_vpn_status_connecting">Connecting...</string>
-    <string name="easytier_vpn_status_connect_failed">Connection failed: %1$s</string>
-    <string name="easytier_vpn_status_tun_set_failed">TUN setup failed: %1$s</string>
-    <string name="easytier_vpn_status_connected">Connected - %1$s</string>
-    <string name="easytier_vpn_status_error">Error: %1$s</string>
 
-    <!-- Platform: EasyTier manager -->
-    <string name="easytier_jni_not_loaded">EasyTier JNI library not loaded</string>
-    <string name="easytier_jni_not_loaded_with_reason">EasyTier JNI library not loaded: %1$s</string>
-    <string name="easytier_error_config_parse_failed">Configuration parse failed</string>
-    <string name="easytier_error_instance_start_failed">Network instance startup failed</string>
 
-    <!-- Platform: EasyTier diagnostics -->
-    <string name="easytier_diag_checking">Checking...</string>
-    <string name="easytier_diag_jni_loaded">JNI library loaded</string>
-    <string name="easytier_diag_jni_load_failed">JNI library load failed</string>
-    <string name="easytier_diag_skipped_jni_unavailable">Skipped: JNI library unavailable</string>
-    <string name="easytier_diag_skipped">Skipped</string>
-    <string name="easytier_diag_exception">Exception: %1$s</string>
-    <string name="easytier_diag_generating_configs">Generating host and guest configurations...</string>
-    <string name="easytier_diag_config_generated">Configuration generated</string>
-    <string name="easytier_diag_config_generate_failed">Configuration generation failed: %1$s</string>
-    <string name="easytier_diag_parsing_host_config">Parsing host configuration...</string>
-    <string name="easytier_diag_config_parse_success">Host and guest configurations parsed successfully</string>
-    <string name="easytier_diag_config_parse_failed">Configuration parse failed</string>
-    <string name="easytier_diag_skipped_config_parse_failed">Skipped: configuration parse failed</string>
-    <string name="easytier_diag_starting_guest_instance">Starting guest instance (port-forward test)...</string>
-    <string name="easytier_diag_instance_start_success">Network instance started successfully</string>
-    <string name="easytier_diag_instance_start_failed">Network instance startup failed</string>
-    <string name="easytier_diag_skipped_instance_not_started">Skipped: instance not started</string>
-    <string name="easytier_diag_waiting_network_init">Waiting for network initialization...</string>
-    <string name="easytier_diag_network_collect_success">Collected %1$d instances, %2$d running, %3$d peers</string>
-    <string name="easytier_diag_network_collect_empty">Network information is empty or too short</string>
-    <string name="easytier_diag_port_checking">Checking whether 127.0.0.1:7777 is listening...</string>
-    <string name="easytier_diag_port_listening">Port 7777 is listening</string>
-    <string name="easytier_diag_port_listening_detail">EasyTier port forwarding is active, 127.0.0.1:7777 is reachable</string>
-    <string name="easytier_diag_port_not_listening">Port 7777 is not listening</string>
-    <string name="easytier_diag_port_not_listening_detail">EasyTier port forwarding may not be active.\nPossible causes:\n1. no_tun mode does not support port forwarding\n2. Invalid configuration format\n3. EasyTier internal error</string>
-    <string name="easytier_diag_stopping_test_instance">Stopping test instance...</string>
-    <string name="easytier_diag_cleanup_done">Cleanup completed</string>
-    <string name="easytier_diag_cleanup_failed">Cleanup failed: %1$s</string>
-    <string name="easytier_diag_detail_last_error">getLastError() = %1$s</string>
-    <string name="easytier_diag_detail_config_preview">Host config (%1$d chars):\n%2$s...\n\nGuest config (%3$d chars):\n%4$s...</string>
-    <string name="easytier_diag_detail_parse_result">hostParseResult=%1$d, guestParseResult=%2$d</string>
-    <string name="easytier_diag_detail_error_suffix">, error=%1$s</string>
-    <string name="easytier_diag_detail_parse_failure">Host: result=%1$d%2$s\nGuest: result=%3$d%4$s</string>
-    <string name="easytier_diag_detail_run_result">runResult=%1$d</string>
-    <string name="easytier_diag_detail_run_failure">runResult=%1$d, error=%2$s</string>
-    <string name="easytier_diag_detail_json_preview">JSON length: %1$d\n%2$s</string>
-    <string name="easytier_diag_detail_json_empty">JSON length: %1$d, content: %2$s</string>
 
     <!-- Extracted Hardcoded Chinese Strings -->
     <string name="control_editor_advanced">Advanced</string>
@@ -1545,7 +1463,6 @@
     <string name="control_editor_clear_all">Clear All</string>
     <string name="control_editor_collapse_menu">Collapse Menu</string>
     <string name="control_editor_component_library">Component Library</string>
-    <string name="control_editor_connecting">Connecting</string>
     <string name="control_editor_custom_shape">Custom Shape</string>
     <string name="control_editor_custom_shape_hint">Custom Shape Hint</string>
     <string name="control_editor_custom_texture">Custom Texture</string>
@@ -1603,43 +1520,6 @@
     <string name="control_editor_mouse_range_hint">Mouse Range Hint</string>
     <string name="control_editor_mousewheel_label">Mousewheel Label</string>
     <string name="control_editor_mousewheel_settings">Mousewheel Settings</string>
-    <string name="control_editor_multiplayer">Multiplayer</string>
-    <string name="control_editor_multiplayer_auto_create_hint">Multiplayer Auto Create Hint</string>
-    <string name="control_editor_multiplayer_click_host_left">Multiplayer Click Host Left</string>
-    <string name="control_editor_multiplayer_connected">Multiplayer Connected</string>
-    <string name="control_editor_multiplayer_connected_players">Connected (%1$d players)</string>
-    <string name="control_editor_multiplayer_connected_finding_host">Multiplayer Connected Finding Host</string>
-    <string name="control_editor_multiplayer_connected_waiting_join">Multiplayer Connected Waiting Join</string>
-    <string name="control_editor_multiplayer_connecting_public_server">Multiplayer Connecting Public Server</string>
-    <string name="control_editor_multiplayer_connecting_room">Multiplayer Connecting Room</string>
-    <string name="control_editor_multiplayer_copied">Multiplayer Copied</string>
-    <string name="control_editor_multiplayer_copied_to_clipboard">Multiplayer Copied To Clipboard</string>
-    <string name="control_editor_multiplayer_copy_invite_code">Multiplayer Copy Invite Code</string>
-    <string name="control_editor_multiplayer_create_and_generate_code">Multiplayer Create And Generate Code</string>
-    <string name="control_editor_multiplayer_creating_room">Multiplayer Creating Room</string>
-    <string name="control_editor_multiplayer_creating_short">Multiplayer Creating Short</string>
-    <string name="control_editor_multiplayer_diagnostics">Multiplayer Diagnostics</string>
-    <string name="control_editor_multiplayer_disconnect">Multiplayer Disconnect</string>
-    <string name="control_editor_multiplayer_enter_invite_code">Multiplayer Enter Invite Code</string>
-    <string name="control_editor_multiplayer_invite_code_placeholder">U/XXXX-XXXX-XXXX</string>
-    <string name="control_editor_multiplayer_game_connect_address">Multiplayer Game Connect Address</string>
-    <string name="control_editor_multiplayer_game_ports">Multiplayer Game Ports</string>
-    <string name="control_editor_multiplayer_game_server_address">Multiplayer Game Server Address</string>
-    <string name="control_editor_multiplayer_host_game_address_hint">After the host starts the server, other players connect to %1$s:port in game</string>
-    <string name="control_editor_multiplayer_guest_game_address_hint">In game, open Multiplayer -&gt; Join via IP and enter %1$s:port</string>
-    <string name="control_editor_multiplayer_invalid_invite_code">Multiplayer Invalid Invite Code</string>
-    <string name="control_editor_multiplayer_invite_code">Multiplayer Invite Code</string>
-    <string name="control_editor_multiplayer_i_want_guest">Multiplayer I Want Guest</string>
-    <string name="control_editor_multiplayer_i_want_host">Multiplayer I Want Host</string>
-    <string name="control_editor_multiplayer_menu">Multiplayer Menu</string>
-    <string name="control_editor_multiplayer_room_created">Multiplayer Room Created</string>
-    <string name="control_editor_multiplayer_searching_host">Multiplayer Searching Host</string>
-    <string name="control_editor_multiplayer_online_count">Online: %1$d</string>
-    <string name="control_editor_multiplayer_select_mode">Multiplayer Select Mode</string>
-    <string name="control_editor_multiplayer_share_invite_code">Multiplayer Share Invite Code</string>
-    <string name="control_editor_multiplayer_share_invite_code_hint">Multiplayer Share Invite Code Hint</string>
-    <string name="control_editor_multiplayer_unavailable">Multiplayer Unavailable</string>
-    <string name="control_editor_multiplayer_waiting_players">Multiplayer Waiting Players</string>
     <string name="control_editor_not_selected">Not Selected</string>
     <string name="control_editor_paste">Paste</string>
     <string name="control_editor_polygon">Polygon</string>
@@ -1748,10 +1628,6 @@
     <string name="console_hint_world_generating">Generating a new world, this may take a few minutes...</string>
     <string name="console_hint_saving_world">Saving world...</string>
 
-    <string name="multiplayer_disclaimer_title">Multiplayer Disclaimer</string>
-    <string name="multiplayer_disclaimer_intro">Multiplayer uses EasyTier (LGPL-3.0), a third-party open-source component. Please report issues through the relevant channels.</string>
-    <string name="multiplayer_disclaimer_p2p">Multiplayer uses P2P technology. After connecting, players connect directly. No third-party relay servers are used for your traffic.</string>
-    <string name="multiplayer_disclaimer_legal">During multiplayer sessions, you must comply with all laws and regulations in your country or region.</string>
 
     <string name="import_new_game_title">Import New Game</string>
     <string name="import_detected_modloader_label">Detected ModLoader</string>
@@ -1912,7 +1788,6 @@
     <string name="settings_cache_cleared">Cache cleared</string>
     <string name="settings_clear_cache_failed">Failed to clear cache</string>
     <string name="settings_logs_cleared">Logs cleared</string>
-    <string name="settings_multiplayer_enabled">Multiplayer enabled</string>
     <string name="settings_fix_restart_required">Please restart the app to complete the fix</string>
     <string name="settings_fix_failed">Fix failed: %1$s</string>
     <string name="settings_reextract_runtime_title">Re-extract Runtime Libraries</string>

@@ -17,6 +17,10 @@ import org.libsdl.app.VirtualXboxController
  * 注意：游戏使用触屏控制，鼠标按键通过虚拟触屏点实现
  */
 class SDLInputBridge : ControlInputBridge {
+
+    /** 主线程 Handler（延迟初始化，避免每次按键都分配） */
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
+
     /**
      * 将SDL Scancode转换为Android KeyCode
      * SDLActivity.onNativeKeyDown期望接收Android KeyCode（如KEYCODE_A=29），不是ASCII！
@@ -155,7 +159,6 @@ class SDLInputBridge : ControlInputBridge {
 //                  ", isDown=" + isDown + ", calling SDLActivity.onNativeKey" + (isDown ? "Down" : "Up"));
 
             // 确保在主线程上调用SDL方法（SDL的native方法需要在主线程调用）
-            val mainHandler = Handler(Looper.getMainLooper())
             val finalKeycode = keycode
             val finalIsDown = isDown
 

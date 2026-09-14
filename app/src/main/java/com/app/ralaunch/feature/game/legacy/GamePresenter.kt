@@ -1,5 +1,7 @@
 package com.app.ralaunch.feature.game.legacy
 
+import android.app.ActivityManager
+import android.content.Context
 import android.os.Build
 import com.app.ralaunch.R
 import com.app.ralaunch.core.platform.runtime.GameLauncher
@@ -27,6 +29,9 @@ class GamePresenter : GameContract.Presenter {
         private const val TAG = "GamePresenter"
         private const val MAX_LOG_LINES = 200
         private const val MAX_LOG_LENGTH = 50000
+
+        /** 可用内存低于该值（GiB）时在启动前提示用户 */
+        private const val LOW_MEMORY_WARN_GB = 2.5
     }
 
     private var viewRef: WeakReference<GameContract.View>? = null
@@ -45,6 +50,8 @@ class GamePresenter : GameContract.Presenter {
 
         // 重置 GameLauncher 初始化状态，确保每次启动都重新初始化
         GameLauncher.resetInitializationState()
+
+        warnIfLowMemory(view)
 
         return try {
             val intent = view.getActivityIntent()
@@ -206,6 +213,30 @@ class GamePresenter : GameContract.Presenter {
     private fun showLaunchError(view: GameContract.View, message: String) {
         view.runOnMainThread {
             view.showError(view.getStringRes(R.string.game_launch_failed), message)
+        }
+    }
+
+    /**
+     * 可用内存过低时提示用户：大型 Mod（如 Calamity）在低内存设备上容易被系统终止
+     */
+    private fun warnIfLowMemory(view: GameContract.View) {
+        try {
+            val context: Context = KoinJavaComponent.get(Context::class.java)
+            val activityManager = context.getSystemService(ActivityManager::class.java) ?: return
+            val memInfo = ActivityManager.MemoryInfo()
+            activityManager.getMemoryInfo(memInfo)
+            val availGb = memInfo.availMem / (1024.0 * 1024 * 1024)
+            if (memInfo.lowMemory || availGb < LOW_MEMORY_WARN_GB) {
+                AppLog.w(
+                    TAG,
+                    "Low available memory before game launch: availMem=${"%.1f".format(availGb)}GB, lowMemory=${memInfo.lowMemory}"
+                )
+                view.runOnMainThread {
+                    view.showToast(view.getStringRes(R.string.game_low_memory_warning, availGb))
+                }
+            }
+        } catch (e: Exception) {
+            AppLog.w(TAG, "Failed to check memory before game launch", e)
         }
     }
 

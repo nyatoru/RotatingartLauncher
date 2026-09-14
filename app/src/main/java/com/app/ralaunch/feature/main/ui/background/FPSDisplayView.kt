@@ -144,6 +144,9 @@ class FPSDisplayView @JvmOverloads constructor(
 
     /** 更新所有数据 */
     private fun updateData() {
+        // 视图隐藏时不做任何采样，避免每 200ms 的 sysfs/env 读取开销
+        updateVisibility()
+        if (visibility != VISIBLE) return
         try {
             // 从 SDL 底层读取 FPS（滑动窗口平均）
             Os.getenv("RAL_FPS")?.takeIf { it.isNotEmpty() }?.let {
@@ -160,7 +163,6 @@ class FPSDisplayView @JvmOverloads constructor(
         updateGpuUsage()
         updateRamUsage()
         updateGlDiagnostics()
-        updateVisibility()
     }
 
     /** 
