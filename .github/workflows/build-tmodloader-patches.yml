@@ -95,35 +95,46 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${{ steps.tml.outputs.tag }}"
-          echo "Fetching asset list for tModLoader $TAG ..."
-          AUTH=()
-          if [ -n "${GH_TOKEN:-}" ]; then AUTH=(-H "Authorization: Bearer $GH_TOKEN"); fi
-          curl -sSL "${AUTH[@]}" \
-            "https://api.github.com/tModLoader/tModLoader/releases/tags/$TAG" \
-            -o tml-release.json
-          echo "Assets:"
-          jq -r '.assets[]?.name' tml-release.json
+          mkdir -p tml-download tml-extracted
 
-          mkdir -p tml-download
-          # The client/server asset names change over time, so fetch every zip
-          # asset and locate the managed DLLs afterwards instead of hardcoding.
-          jq -r '.assets[]? | select(.name | endswith(".zip")) | .browser_download_url' \
-            tml-release.json > tml-urls.txt
-          if [ ! -s tml-urls.txt ]; then
-            echo "::error::No .zip assets found for tModLoader tag $TAG"
-            exit 1
+          # Primary: stable direct release URL, no API needed.
+          # (tModLoader.zip is the long-standing Windows client asset name.)
+          if curl -fSL -o "tml-download/tModLoader.zip" \
+              "https://github.com/tModLoader/tModLoader/releases/download/$TAG/tModLoader.zip"; then
+            echo "Downloaded tModLoader.zip via direct release URL."
+          else
+            echo "Direct download failed, falling back to release API asset discovery ..."
+            AUTH=()
+            if [ -n "${GH_TOKEN:-}" ]; then AUTH=(-H "Authorization: Bearer $GH_TOKEN"); fi
+            # -f so HTTP errors (404/403/rate-limit) fail loudly instead of
+            # producing an empty asset list that breaks later steps silently.
+            curl -fSL "${AUTH[@]}" \
+              "https://api.github.com/tModLoader/tModLoader/releases/tags/$TAG" \
+              -o tml-release.json
+            echo "Assets:"
+            jq -r '.assets[]?.name' tml-release.json
+
+            # The client/server asset names change over time, so fetch every zip
+            # asset and locate the managed DLLs afterwards instead of hardcoding.
+            jq -r '.assets[]? | select(.name | endswith(".zip")) | .browser_download_url' \
+              tml-release.json > tml-urls.txt
+            if [ ! -s tml-urls.txt ]; then
+              echo "::error::No .zip assets found for tModLoader tag $TAG"
+              exit 1
+            fi
+            while read -r url; do
+              echo "Downloading $url ..."
+              curl -fSL -o "tml-download/$(basename "$url")" "$url"
+            done < tml-urls.txt
           fi
-          while read -r url; do
-            echo "Downloading $url ..."
-            curl -sSL -o "tml-download/$(basename "$url")" "$url"
-          done < tml-urls.txt
 
-          mkdir -p tml-extracted
           for z in tml-download/*.zip; do
             echo "Extracting $z ..."
             unzip -q -o "$z" -d tml-extracted || true
           done
 
+          echo "Top-level layout:"
+          find tml-extracted -maxdepth 2 | head -n 50
           echo "Located candidates:"
           find tml-extracted -iname 'tmodloader.dll' | head -n 20
           find tml-extracted -iname 'FNA.dll' | head -n 20
