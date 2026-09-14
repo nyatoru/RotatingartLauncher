@@ -32,6 +32,15 @@ public static class Patcher
             Console.WriteLine("[TModLoaderPatch] Initializing Android/ARM64 fix patch...");
             Console.WriteLine("========================================");
 
+            // RAL: ES3 GetData safety net. FNA3D's OPENGL_GetTextureData2D used to
+            // SDL_assert(supports_NonES3) which shows a native RETRY/BREAK/ABORT/
+            // IGNORE dialog on all Android ES3 renderers when tModLoader calls
+            // Texture2D.GetData(). Native fallback now lives in
+            // core/patches/fna3d-es3-getdata.patch, but ensure the SDL assertion
+            // handler can never block startup even on unpatched builds or when
+            // per-game env vars cleared the launcher default.
+            EnsureSdlAssertIgnored();
+            LogRendererDiagnostics();
 
             // 应用 Harmony 补丁
             ApplyHarmonyPatches();
@@ -120,6 +129,78 @@ public static class Patcher
         SetResolveNativeLibraryHandler();
         OpenToURLPatch();
         WorkshopSearchPatch();
+        FnaEs3GetDataGuard();
+    }
+
+    /// <summary>
+    /// RAL: ES3 GetData 诊断守卫。原生崩溃点是 FNA3D 的
+    /// OPENGL_GetTextureData2D 对 supports_NonES3 的 SDL_assert（桌面独占的
+    /// glGetTexImage/glGetBufferSubData 在 GLES3 上不存在）。原生修复见
+    /// core/patches/fna3d-es3-getdata.patch（FBO + glReadPixels / MapBufferRange
+    /// 回退）。这里只做两件事：记录当前渲染器模式以便定位问题，以及对 FNA
+    /// Texture2D.GetData 的首个可疑调用输出可操作的警告（压缩格式/非零 mipmap
+    /// 在 ES3 回退路径下仍可能不受支持），避免用户面对无意义的原生弹窗。
+    /// 不改变任何成功路径的行为。
+    /// </summary>
+    public static void FnaEs3GetDataGuard()
+    {
+        try
+        {
+            var forceEs3 = Environment.GetEnvironmentVariable("FNA3D_OPENGL_FORCE_ES3");
+            var renderer = Environment.GetEnvironmentVariable("RALCORE_RENDERER")
+                ?? Environment.GetEnvironmentVariable("FNA3D_OPENGL_DRIVER")
+                ?? "(unknown)";
+            Console.WriteLine($"[TModLoaderPatch] Renderer check: RALCORE_RENDERER={renderer}, FNA3D_OPENGL_FORCE_ES3={forceEs3 ?? "(unset=default desktop)"}");
+
+            if (forceEs3 != "1")
+            {
+                return;
+            }
+
+            Console.WriteLine("[TModLoaderPatch] ES3 mode detected: native FNA3D ES3 GetData fallback will be used for Texture2D.GetData().");
+            Console.WriteLine("[TModLoaderPatch] If you still see a native assert dialog, update the launcher so core/patches/fna3d-es3-getdata.patch is applied, and prefer the gl4es renderer for tModLoader.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[TModLoaderPatch] FnaEs3GetDataGuard failed: {ex.Message}");
+        }
+    }
+
+    private static void EnsureSdlAssertIgnored()
+    {
+        try
+        {
+            // SDL2 reads SDL_ASSERT at first assertion; setting it here covers the
+            // dotnet child process even if the launcher env was overridden per-game.
+            // Values: abort/break/retry/ignore/always_ignore. always_ignore logs and continues.
+            var current = Environment.GetEnvironmentVariable("SDL_ASSERT");
+            if (current != "always_ignore")
+            {
+                Environment.SetEnvironmentVariable("SDL_ASSERT", "always_ignore");
+                Console.WriteLine($"[TModLoaderPatch] SDL_ASSERT={current ?? "(unset)"} -> always_ignore (never show RETRY/BREAK/ABORT/IGNORE)");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[TModLoaderPatch] EnsureSdlAssertIgnored failed: {ex.Message}");
+        }
+    }
+
+    private static void LogRendererDiagnostics()
+    {
+        try
+        {
+            Console.WriteLine("[TModLoaderPatch] Env: RALCORE_RENDERER=" +
+                (Environment.GetEnvironmentVariable("RALCORE_RENDERER") ?? "(unset)") +
+                ", FNA3D_OPENGL_DRIVER=" + (Environment.GetEnvironmentVariable("FNA3D_OPENGL_DRIVER") ?? "(unset)") +
+                ", FNA3D_OPENGL_FORCE_ES3=" + (Environment.GetEnvironmentVariable("FNA3D_OPENGL_FORCE_ES3") ?? "(unset)") +
+                ", FNA3D_OPENGL_LIBRARY=" + (Environment.GetEnvironmentVariable("FNA3D_OPENGL_LIBRARY") ?? "(unset)") +
+                ", SDL_ASSERT=" + (Environment.GetEnvironmentVariable("SDL_ASSERT") ?? "(unset)"));
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[TModLoaderPatch] LogRendererDiagnostics failed: {ex.Message}");
+        }
     }
 
     public static void LoggingHooksHarmonyPatch()

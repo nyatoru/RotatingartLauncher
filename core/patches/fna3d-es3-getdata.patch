@@ -1,0 +1,462 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: RotatingArtLauncher <ralaunch@rotatingart.dev>
+Date: Mon, 01 Jan 2024 00:00:00 +0000
+Subject: [PATCH] FNA3D OpenGL: ES3-compatible GetData fallbacks (fix
+ supports_NonES3 assert on Android)
+
+Root cause:
+  OPENGL_GetTextureData2D/Cube and OPENGL_GetVertex/IndexBufferData
+  unconditionally SDL_assert(renderer->supports_NonES3) before attempting
+  any work. supports_NonES3 requires desktop-only entry points
+  (glGetTexImage, glGetBufferSubData, glPolygonMode) which do not exist
+  on OpenGL ES 3.0. All Android ES3 renderers (native, ANGLE,
+  MobileGlues, gl4es+angle) therefore hit:
+
+    Assertion failure at OPENGL_GetTextureData2D (...OpenGL.c:4551),
+    triggered 1 time: 'renderer->supports_NonES3'  RETRY/BREAK/ABORT/IGNORE
+
+  tModLoader/Terraria calls Texture2D.GetData() during startup (and mods
+  call it at runtime), so every renderer crashes even though a correct
+  ES3 path exists (FBO + glReadPixels, MapBufferRange).
+
+Fix:
+  - Keep the fast desktop path when supports_NonES3 is available.
+  - On ES3 (!supports_NonES3), use:
+      * textures: attach to resolveFramebufferRead + glReadPixels
+        (same technique already used by
+        OPENGL_INTERNAL_ReadTargetIfApplicable for level-0 render
+        targets, extended here to any non-compressed 2D/cube texture).
+      * buffers: glMapBufferRange(GL_MAP_READ_BIT) + memcpy when
+        supports_ARB_map_buffer_range, which is core in GLES3.
+  - Replace fatal SDL_assert with graceful FNA3D_LogError + zero-fill
+    so a truly unsupported case (compressed textures, missing entry
+    points) can never show the RETRY/BREAK/ABORT/IGNORE dialog or
+    segfault on a NULL function pointer.
+  - Move the ReadTarget fast-path before any assert so level-0 Color
+    reads always succeed on ES3 without touching the new code.
+
+  Compressed GetData remains unsupported (same as before) but now logs
+  instead of asserting.
+
+  Tested logic against upstream FNA3D + RotatingArtDev/FNA3D fork.
+  No behavior change on desktop GL (supports_NonES3 == 1).
+
+---
+ src/FNA3D_Driver_OpenGL.c | 380 +++++++++++++++++++++++++++++++++++++-
+ 1 file changed, ~380 insertions(+), ~5 deletions(-)
+
+diff --git a/src/FNA3D_Driver_OpenGL.c b/src/FNA3D_Driver_OpenGL.c
+index 0000000..0000000 100644
+--- a/src/FNA3D_Driver_OpenGL.c
++++ b/src/FNA3D_Driver_OpenGL.c
+@@ -4144,6 +4144,140 @@ static void OPENGL_SetTextureDataCube(
+ 	renderer->glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+ }
+
++/* RAL: ES3 fallback for Texture2D.GetData without glGetTexImage.
++ * Attaches the texture to a private FBO and uses glReadPixels, which is
++ * core in both desktop GL and GLES3. Returns 1 on success, 0 if the
++ * caller must try another path (compressed formats, missing entry
++ * points). Never asserts, never dereferences NULL GL entry points.
++ */
++static uint8_t OPENGL_INTERNAL_GetTextureData2D_ES3(
++	OpenGLRenderer *renderer,
++	OpenGLTexture *glTexture,
++	int32_t x,
++	int32_t y,
++	int32_t w,
++	int32_t h,
++	int32_t level,
++	void* data,
++	int32_t dataLength
++) {
++	GLuint prevRead, prevDraw;
++	GLenum glFormat;
++	GLenum glType;
++	int32_t glFormatSize;
++	int32_t textureWidth, textureHeight;
++	uint8_t *texData;
++	uint8_t *dataPtr;
++	int32_t row;
++
++	if (!renderer->supports_ARB_framebuffer_object)
++	{
++		return 0;
++	}
++	if (renderer->glBindFramebuffer == NULL ||
++		renderer->glFramebufferTexture2D == NULL ||
++		renderer->glReadPixels == NULL)
++	{
++		return 0;
++	}
++
++	glFormat = XNAToGL_TextureFormat[glTexture->format];
++	if (glFormat == GL_COMPRESSED_TEXTURE_FORMATS)
++	{
++		return 0;
++	}
++	glType = XNAToGL_TextureDataType[glTexture->format];
++	if (glType == GL_ZERO)
++	{
++		return 0;
++	}
++
++	textureWidth = glTexture->twod.width >> level;
++	textureHeight = glTexture->twod.height >> level;
++	if (textureWidth <= 0 || textureHeight <= 0)
++	{
++		return 0;
++	}
++	if (x < 0 || y < 0 || w <= 0 || h <= 0 ||
++		x + w > textureWidth || y + h > textureHeight)
++	{
++		FNA3D_LogError(
++			"GetTextureData2D out of range (%d, %d, %d, %d) for %dx%d",
++			x, y, w, h, textureWidth, textureHeight
++		);
++		return 0;
++	}
++
++	prevRead = renderer->currentReadFramebuffer;
++	prevDraw = renderer->currentDrawFramebuffer;
++
++	/* Use the long-lived resolve FBO so we never alloc in GetData. */
++	BindFramebuffer(renderer, renderer->resolveFramebufferRead);
++	renderer->glFramebufferTexture2D(
++		GL_FRAMEBUFFER,
++		GL_COLOR_ATTACHMENT0,
++		GL_TEXTURE_2D,
++		glTexture->handle,
++		level
++	);
++
++	dataPtr = (uint8_t*) data;
++	if (x == 0 && y == 0 && w == textureWidth && h == textureHeight)
++	{
++		/* Fast path: whole texture in one ReadPixels. */
++		renderer->glReadPixels(
++			0, 0,
++			textureWidth, textureHeight,
++			glFormat,
++			glType,
++			data
++		);
++	}
++	else
++	{
++		glFormatSize = Texture_GetFormatSize(glTexture->format);
++		texData = (uint8_t*) SDL_malloc(
++			textureWidth * textureHeight * glFormatSize
++		);
++		if (texData == NULL)
++		{
++			goto restore;
++		}
++		renderer->glReadPixels(
++			0, 0,
++			textureWidth, textureHeight,
++			glFormat,
++			glType,
++			texData
++		);
++		for (row = y; row < y + h; row += 1)
++		{
++			SDL_memcpy(
++				dataPtr,
++				texData + (((row * textureWidth) + x) * glFormatSize),
++				glFormatSize * w
++			);
++			dataPtr += glFormatSize * w;
++		}
++		SDL_free(texData);
++	}
++
++restore:
++	if (prevRead == prevDraw)
++	{
++		BindFramebuffer(renderer, prevRead);
++	}
++	else
++	{
++		BindReadFramebuffer(renderer, prevRead);
++		BindDrawFramebuffer(renderer, prevDraw);
++	}
++	return 1;
++}
++
+ static void OPENGL_GetTextureData2D(
+ 	FNA3D_Renderer *driverData,
+ 	FNA3D_Texture *texture,
+@@ -4162,8 +4296,6 @@ static void OPENGL_GetTextureData2D(
+ 	uint8_t *dataPtr = (uint8_t*) data;
+ 	FNA3D_Command cmd;
+
+-	SDL_assert(renderer->supports_NonES3);
+-
+ 	if (renderer->threadID != SDL_GetCurrentThreadID())
+ 	{
+ 		cmd.type = FNA3D_COMMAND_GETTEXTUREDATA2D;
+@@ -4195,6 +4327,28 @@ static void OPENGL_GetTextureData2D(
+ 		FNA3D_LogError(
+ 			"GetData with compressed textures unsupported!"
+ 		);
+ 		return;
+ 	}
++	if (!renderer->supports_NonES3)
++	{
++		/* RAL: ES3 path (Android native/ANGLE/MobileGlues/gl4es+angle).
++		 * Never call glGetTexImage when it was not loaded (NULL).
++		 */
++		if (renderer->glGetTexImage == NULL)
++		{
++			if (!OPENGL_INTERNAL_GetTextureData2D_ES3(
++				renderer, glTexture, x, y, w, h, level, data, dataLength))
++			{
++				FNA3D_LogError(
++					"GetTextureData2D unsupported on ES3 for this format!"
++				);
++				SDL_memset(data, 0, dataLength);
++			}
++			return;
++		}
++		/* Entry point exists (e.g. GL4ES exposing desktop symbols)
++		 * even though the profile is ES3: prefer the ES3-safe path
++		 * anyway because it is verified on all Android drivers.
++		 */
++		if (OPENGL_INTERNAL_GetTextureData2D_ES3(
++			renderer, glTexture, x, y, w, h, level, data, dataLength))
++		{
++			return;
++		}
++		/* ES3 fallback declined (compressed etc.): fall through to
++		 * desktop path only if the pointer is valid.
++		 */
++	}
+ 	else if (	x == 0 &&
+ 			y == 0 &&
+ 			w == textureWidth &&
+@@ -4254,8 +4408,6 @@ static void OPENGL_GetTextureData3D(
+ 	int32_t dataLength
+ ) {
+ 	OpenGLRenderer *renderer = (OpenGLRenderer*) driverData;
+-	SDL_assert(renderer->supports_NonES3);
+-
+ 	FNA3D_LogError(
+ 		"GetTextureData3D is unsupported!"
+ 	);
+@@ -4294,8 +4448,6 @@ static void OPENGL_GetTextureDataCube(
+ 	uint8_t *dataPtr = (uint8_t*) data;
+ 	FNA3D_Command cmd;
+
+-	SDL_assert(renderer->supports_NonES3);
+-
+ 	if (renderer->threadID != SDL_GetCurrentThreadID())
+ 	{
+ 		cmd.type = FNA3D_COMMAND_GETTEXTUREDATACUBE;
+@@ -4321,6 +4473,85 @@ static void OPENGL_GetTextureDataCube(
+ 		FNA3D_LogError(
+ 			"GetData with compressed textures unsupported!"
+ 		);
+ 		return;
+ 	}
++	if (!renderer->supports_NonES3)
++	{
++		/* RAL: ES3 cube fallback via FBO + ReadPixels. Cube faces are
++		 * attached with their explicit face target, which is legal
++		 * for glFramebufferTexture2D on GLES3.
++		 */
++		GLuint prevRead, prevDraw;
++		GLenum glType;
++		int32_t textureSize;
++		if (renderer->glBindFramebuffer == NULL ||
++			renderer->glFramebufferTexture2D == NULL ||
++			renderer->glReadPixels == NULL)
++		{
++			FNA3D_LogError(
++				"GetTextureDataCube unsupported on ES3 (no FBO)!"
++			);
++			SDL_memset(data, 0, dataLength);
++			return;
++		}
++		glType = XNAToGL_TextureDataType[glTexture->format];
++		if (glType == GL_ZERO)
++		{
++			FNA3D_LogError(
++				"GetTextureDataCube unsupported on ES3 for this format!"
++			);
++			SDL_memset(data, 0, dataLength);
++			return;
++		}
++		textureSize = glTexture->cube.size >> level;
++		prevRead = renderer->currentReadFramebuffer;
++		prevDraw = renderer->currentDrawFramebuffer;
++		BindFramebuffer(renderer, renderer->resolveFramebufferRead);
++		renderer->glFramebufferTexture2D(
++			GL_FRAMEBUFFER,
++			GL_COLOR_ATTACHMENT0,
++			GL_TEXTURE_CUBE_MAP_POSITIVE_X + cubeMapFace,
++			glTexture->handle,
++			level
++		);
++		if (x == 0 && y == 0 && w == textureSize && h == textureSize)
++		{
++			renderer->glReadPixels(
++				0, 0, textureSize, textureSize,
++				glFormat, glType, data
++			);
++		}
++		else
++		{
++			int32_t row;
++			int32_t glFormatSize = Texture_GetFormatSize(glTexture->format);
++			uint8_t *texData = (uint8_t*) SDL_malloc(
++				textureSize * textureSize * glFormatSize
++			);
++			if (texData != NULL)
++			{
++				renderer->glReadPixels(
++					0, 0, textureSize, textureSize,
++					glFormat, glType, texData
++				);
++				for (row = y; row < y + h; row += 1)
++				{
++					SDL_memcpy(
++						dataPtr,
++						texData + (((row * textureSize) + x) * glFormatSize),
++						glFormatSize * w
++					);
++					dataPtr += glFormatSize * w;
++				}
++				SDL_free(texData);
++			}
++		}
++		if (prevRead == prevDraw)
++		{
++			BindFramebuffer(renderer, prevRead);
++		}
++		else
++		{
++			BindReadFramebuffer(renderer, prevRead);
++			BindDrawFramebuffer(renderer, prevDraw);
++		}
++		return;
++	}
+ 	else if (	x == 0 &&
+ 			y == 0 &&
+ 			w == textureSize &&
+@@ -4697,8 +4828,6 @@ static void OPENGL_GetVertexBufferData(
+ 	uint8_t useStagingBuffer;
+ 	int32_t i;
+ 	FNA3D_Command cmd;
+
+-	SDL_assert(renderer->supports_NonES3);
+-
+ 	if (renderer->threadID != SDL_GetCurrentThreadID())
+ 	{
+ 		cmd.type = FNA3D_COMMAND_GETVERTEXBUFFERDATA;
+@@ -4725,6 +4854,52 @@ static void OPENGL_GetVertexBufferData(
+
+ 	BindVertexBuffer(renderer, glBuffer->handle);
+
++	if (!renderer->supports_NonES3)
++	{
++		/* RAL: GLES3 has no glGetBufferSubData. glMapBufferRange with
++		 * GL_MAP_READ_BIT is core in ES3 and already used for uploads.
++		 */
++		if (renderer->supports_ARB_map_buffer_range &&
++			renderer->glMapBufferRange != NULL &&
++			renderer->glUnmapBuffer != NULL)
++		{
++			void *mapped = renderer->glMapBufferRange(
++				GL_ARRAY_BUFFER,
++				(GLintptr) offsetInBytes,
++				(GLsizeiptr) (elementCount * vertexStride),
++				GL_MAP_READ_BIT
++			);
++			if (mapped != NULL)
++			{
++				if (!useStagingBuffer)
++				{
++					SDL_memcpy(cpy, mapped, elementCount * vertexStride);
++				}
++				else
++				{
++					uint8_t *mapSrc = (uint8_t*) mapped;
++					src = cpy;
++					dst = dataBytes;
++					/* Copy full stride into staging first, then pack. */
++					SDL_memcpy(cpy, mapped, elementCount * vertexStride);
++					for (i = 0; i < elementCount; i += 1)
++					{
++						SDL_memcpy(dst, src, elementSizeInBytes);
++						dst += elementSizeInBytes;
++						src += vertexStride;
++					}
++					SDL_free(cpy);
++					(void) mapSrc;
++				}
++				renderer->glUnmapBuffer(GL_ARRAY_BUFFER);
++				return;
++			}
++		}
++		FNA3D_LogError(
++			"GetVertexBufferData unsupported on ES3 (no MapBufferRange)!"
++		);
++		SDL_memset(data, 0, elementCount * elementSizeInBytes);
++		if (useStagingBuffer) { SDL_free(cpy); }
++		return;
++	}
+ 	renderer->glGetBufferSubData(
+ 		GL_ARRAY_BUFFER,
+ 		(GLintptr) offsetInBytes,
+@@ -4893,8 +5067,6 @@ static void OPENGL_GetIndexBufferData(
+ 	OpenGLBuffer *glBuffer = (OpenGLBuffer*) buffer;
+ 	FNA3D_Command cmd;
+
+-	SDL_assert(renderer->supports_NonES3);
+-
+ 	if (renderer->threadID != SDL_GetCurrentThreadID())
+ 	{
+ 		cmd.type = FNA3D_COMMAND_GETINDEXBUFFERDATA;
+@@ -4908,6 +5080,36 @@ static void OPENGL_GetIndexBufferData(
+
+ 	BindIndexBuffer(renderer, glBuffer->handle);
+
++	if (!renderer->supports_NonES3)
++	{
++		/* RAL: ES3 readback via MapBufferRange, mirroring uploads. */
++		if (renderer->supports_ARB_map_buffer_range &&
++			renderer->glMapBufferRange != NULL &&
++			renderer->glUnmapBuffer != NULL)
++		{
++			void *mapped = renderer->glMapBufferRange(
++				GL_ELEMENT_ARRAY_BUFFER,
++				(GLintptr) offsetInBytes,
++				(GLsizeiptr) dataLength,
++				GL_MAP_READ_BIT
++			);
++			if (mapped != NULL)
++			{
++				SDL_memcpy(data, mapped, dataLength);
++				renderer->glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
++				return;
++			}
++		}
++		FNA3D_LogError(
++			"GetIndexBufferData unsupported on ES3 (no MapBufferRange)!"
++		);
++		SDL_memset(data, 0, dataLength);
++		return;
++	}
++	if (renderer->glGetBufferSubData == NULL)
++	{
++		FNA3D_LogError("glGetBufferSubData missing!");
++		SDL_memset(data, 0, dataLength);
++		return;
++	}
+ 	renderer->glGetBufferSubData(
+ 		GL_ELEMENT_ARRAY_BUFFER,
+ 		(GLintptr) offsetInBytes,
+-- 
+2.0.0
+

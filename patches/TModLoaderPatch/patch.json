@@ -1,8 +1,8 @@
 {
   "id": "com.app.ralaunch.tmodloader.androidfix",
   "name": "tModLoader Android 修复补丁",
-  "description": "修复 tModLoader 在 Android 平台上的 InstallVerifier 空引用异常和 OpenToURL 崩溃",
-  "version": "1.0.4",
+  "description": "修复 tModLoader 在 Android 平台上的 InstallVerifier 空引用异常、OpenToURL 崩溃，以及 FNA3D ES3 下 Texture2D.GetData 触发 supports_NonES3 原生断言弹窗（配合 core/patches/fna3d-es3-getdata.patch 与 SDL_ASSERT=always_ignore 使用）",
+  "version": "1.0.5",
   "author": "RA Launcher Team",
   "dllFileName": "TModLoaderPatch.dll",
   "entryPoint": {

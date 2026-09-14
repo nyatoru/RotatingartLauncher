@@ -92,6 +92,12 @@ object RendererEnvironmentConfigurator {
         envVars["FNA3D_OPENGL_DRIVER"] = renderer
         envVars["FNA3D_FORCE_DRIVER"] = "OpenGL"
         envVars.putAll(getOpenGlVersionConfig(renderer))
+        // RAL: Never show SDL RETRY/BREAK/ABORT/IGNORE assertion dialogs to users.
+        // With the FNA3D ES3 GetData fallback (core/patches/fna3d-es3-getdata.patch),
+        // GetTextureData/GetBufferData no longer assert, but any remaining SDL_assert
+        // (e.g. in unpatched local builds) must degrade to a log instead of hanging
+        // tModLoader startup on the supports_NonES3 dialog.
+        envVars["SDL_ASSERT"] = "always_ignore"
 //        envVars["FNA3D_OPENGL_USE_MAP_BUFFER_RANGE"] = getMapBufferRangeValue(renderer)
         envVars.putAll(getQualityConfig())
 //        envVars["SDL_RENDER_VSYNC"] = "1"
@@ -148,6 +154,14 @@ object RendererEnvironmentConfigurator {
     private fun getOpenGlVersionConfig(renderer: String): Map<String, String?> {
         return when (renderer) {
             AndroidRendererRegistry.ID_GL4ES,
+            // RAL: gl4es+angle still presents the desktop GL API via GL4ES
+            // (ANGLE is only the backend). Forcing ES3 here would needlessly
+            // disable supports_NonES3 (glGetTexImage/glGetBufferSubData) and
+            // re-trigger the tModLoader OPENGL_GetTextureData2D assert even
+            // though the driver can serve desktop GL. Keep it on the desktop
+            // path like plain gl4es; ES3 renderers are covered by the native
+            // FNA3D ES3 GetData fallback instead.
+            AndroidRendererRegistry.ID_GL4ES_ANGLE,
             AndroidRendererRegistry.ID_ZINK -> {
                 buildMap {
                     put("FNA3D_OPENGL_FORCE_ES3", null)
@@ -188,7 +202,8 @@ object RendererEnvironmentConfigurator {
         AppLog.i(TAG, "FNA3D_FORCE_DRIVER = ${envVars["FNA3D_FORCE_DRIVER"]}")
 
         when (renderer) {
-            AndroidRendererRegistry.ID_GL4ES ->
+            AndroidRendererRegistry.ID_GL4ES,
+            AndroidRendererRegistry.ID_GL4ES_ANGLE ->
                 AppLog.i(TAG, "OpenGL Profile: Desktop OpenGL 2.1 Compatibility Profile")
             AndroidRendererRegistry.ID_ZINK ->
                 AppLog.i(TAG, "OpenGL Profile: Desktop OpenGL 4.3 (Mesa Zink over Vulkan)")
