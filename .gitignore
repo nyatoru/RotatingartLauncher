@@ -152,3 +152,8 @@ tools/sponsors/
 
 # Generated reports
 strings_xml_analysis_report.txt
+
+# Local-only C# reference assemblies for patch projects
+# (e.g. tModLoader/FNA game DLLs expected at patches/external/...).
+# Never commit these; CI stages them from the pinned tModLoader release.
+patches/external/

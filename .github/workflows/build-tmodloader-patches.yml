@@ -1,0 +1,220 @@
+name: Build tModLoader Patches
+
+# Builds the C# Harmony patches that target tModLoader (currently the
+# androidfix patch) and packages the asset zips under
+# app/src/main/assets/patches/.
+#
+# Why CI: the patch projects reference game assemblies
+# (patches/external/tModLoader/...) that are NOT checked into git.
+# This workflow downloads a pinned tModLoader release, stages those
+# reference DLLs, compiles with the .NET 8 SDK and zips the result.
+#
+# - push / pull_request touching patches/TModLoaderPatch/** : build + upload artifact
+# - workflow_dispatch : same, plus optional commit-back of the rebuilt
+#   asset zip (needs contents:write, already granted below).
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'patches/TModLoaderPatch/**'
+      - '.github/workflows/build-tmodloader-patches.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'patches/TModLoaderPatch/**'
+      - '.github/workflows/build-tmodloader-patches.yml'
+  workflow_dispatch:
+    inputs:
+      tml_tag:
+        description: 'tModLoader release tag used for reference DLLs'
+        required: false
+        default: 'v2026.07.3.0'
+      commit_back:
+        description: 'Commit rebuilt asset zip back to the branch (LFS)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+env:
+  # Must match the <TargetFramework> in patches/TModLoaderPatch/*.csproj
+  DOTNET_VERSION: '8.0.x'
+  # Pinned tModLoader release for reference assemblies (override via dispatch).
+  TML_TAG: 'v2026.07.3.0'
+  PATCH_PROJECT: 'patches/TModLoaderPatch/TModLoaderPatch.csproj'
+  PATCH_JSON: 'patches/TModLoaderPatch/patch.json'
+  # Must match "dllFileName" in patch.json.
+  PATCH_DLL_NAME: 'TModLoaderPatch.dll'
+  # Must match the asset file name already tracked (Git LFS) in
+  # app/src/main/assets/patches/.
+  ASSET_ZIP: 'app/src/main/assets/patches/com.app.ralaunch.tmodloader.androidfix.zip'
+
+jobs:
+  build:
+    name: Build androidfix patch
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Resolve tModLoader tag
+        id: tml
+        run: |
+          TAG="${{ inputs.tml_tag }}"
+          if [ -z "$TAG" ]; then TAG="$TML_TAG"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Using tModLoader tag: $TAG"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Patch C# build needs no submodules and no LFS blobs.
+          submodules: false
+          lfs: false
+          fetch-depth: 1
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore reference assemblies cache
+        id: refcache
+        uses: actions/cache@v4
+        with:
+          path: patches/external
+          key: tml-refs-${{ steps.tml.outputs.tag }}
+
+      - name: Download tModLoader reference DLLs
+        if: steps.refcache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.tml.outputs.tag }}"
+          echo "Fetching asset list for tModLoader $TAG ..."
+          AUTH=()
+          if [ -n "${GH_TOKEN:-}" ]; then AUTH=(-H "Authorization: Bearer $GH_TOKEN"); fi
+          curl -sSL "${AUTH[@]}" \
+            "https://api.github.com/tModLoader/tModLoader/releases/tags/$TAG" \
+            -o tml-release.json
+          echo "Assets:"
+          jq -r '.assets[]?.name' tml-release.json
+
+          mkdir -p tml-download
+          # The client/server asset names change over time, so fetch every zip
+          # asset and locate the managed DLLs afterwards instead of hardcoding.
+          jq -r '.assets[]? | select(.name | endswith(".zip")) | .browser_download_url' \
+            tml-release.json > tml-urls.txt
+          if [ ! -s tml-urls.txt ]; then
+            echo "::error::No .zip assets found for tModLoader tag $TAG"
+            exit 1
+          fi
+          while read -r url; do
+            echo "Downloading $url ..."
+            curl -sSL -o "tml-download/$(basename "$url")" "$url"
+          done < tml-urls.txt
+
+          mkdir -p tml-extracted
+          for z in tml-download/*.zip; do
+            echo "Extracting $z ..."
+            unzip -q -o "$z" -d tml-extracted || true
+          done
+
+          echo "Located candidates:"
+          find tml-extracted -iname 'tmodloader.dll' | head -n 20
+          find tml-extracted -iname 'FNA.dll' | head -n 20
+
+          # Main game assembly (contains Terraria.Utils). Prefer the client
+          # assembly over the dedicated-server one.
+          TML_DLL="$(find tml-extracted -iname 'tmodloader.dll' \
+            | grep -vi server | head -n 1)"
+          if [ -z "$TML_DLL" ]; then
+            TML_DLL="$(find tml-extracted -iname 'tmodloader.dll' | head -n 1)"
+          fi
+          FNA_DLL="$(find tml-extracted -iname 'FNA.dll' | head -n 1)"
+          if [ -z "${TML_DLL:-}" ]; then
+            echo "::error::tModLoader.dll not found in release $TAG"
+            exit 1
+          fi
+          if [ -z "${FNA_DLL:-}" ]; then
+            echo "::error::FNA.dll not found in release $TAG"
+            exit 1
+          fi
+
+          # Stage exactly where the .csproj HintPaths expect them.
+          mkdir -p patches/external/tModLoader/Libraries/FNA/1.0.0
+          cp "$TML_DLL" patches/external/tModLoader/tModLoader.dll
+          cp "$FNA_DLL" patches/external/tModLoader/Libraries/FNA/1.0.0/FNA.dll
+          echo "Staged reference DLLs:"
+          find patches/external -type f
+
+      - name: Build TModLoaderPatch
+        run: |
+          dotnet build "$PATCH_PROJECT" -c Release --nologo
+
+      - name: Verify build output
+        run: |
+          set -euo pipefail
+          DLL="patches/TModLoaderPatch/bin/Release/net8.0/$PATCH_DLL_NAME"
+          test -f "$DLL"
+          # Cheap smoke check: our new ES3 guard must be in the binary.
+          if ! strings -e l "$DLL" | grep -q "FnaEs3GetDataGuard"; then
+            echo "::error::$PATCH_DLL_NAME does not contain FnaEs3GetDataGuard; stale source?"
+            exit 1
+          fi
+          echo "Build output OK: $DLL"
+
+      - name: Package asset zip
+        run: |
+          set -euo pipefail
+          DLL="patches/TModLoaderPatch/bin/Release/net8.0/$PATCH_DLL_NAME"
+          rm -rf dist && mkdir -p dist
+          cp "$DLL" dist/
+          cp "$PATCH_JSON" dist/
+          (cd dist && zip -j com.app.ralaunch.tmodloader.androidfix.zip patch.json "$PATCH_DLL_NAME")
+          echo "Zip contents:"
+          unzip -l dist/com.app.ralaunch.tmodloader.androidfix.zip
+          # Layout contract with PatchManager: exactly patch.json + dll at root,
+          # and the bundled manifest version must match the source patch.json.
+          COUNT="$(unzip -Z1 dist/com.app.ralaunch.tmodloader.androidfix.zip | wc -l)"
+          if [ "$COUNT" != "2" ]; then
+            echo "::error::Expected 2 entries in asset zip, found $COUNT"
+            exit 1
+          fi
+          ZIP_VER="$(unzip -p dist/com.app.ralaunch.tmodloader.androidfix.zip patch.json | jq -r .version)"
+          SRC_VER="$(jq -r .version "$PATCH_JSON")"
+          if [ "$ZIP_VER" != "$SRC_VER" ]; then
+            echo "::error::Manifest version mismatch: zip=$ZIP_VER src=$SRC_VER"
+            exit 1
+          fi
+          echo "Asset zip OK (manifest version $ZIP_VER)"
+
+      - name: Upload asset zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmodloader-androidfix-${{ steps.tml.outputs.tag }}
+          path: dist/com.app.ralaunch.tmodloader.androidfix.zip
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Commit rebuilt asset zip back
+        if: github.event_name == 'workflow_dispatch' && inputs.commit_back
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Ensure the LFS clean filter is active so the zip is stored as LFS.
+          git lfs install --local
+          cp dist/com.app.ralaunch.tmodloader.androidfix.zip "$ASSET_ZIP"
+          git add "$ASSET_ZIP"
+          if git diff --cached --quiet; then
+            echo "No changes to commit (asset zip identical)."
+            exit 0
+          fi
+          VER="$(jq -r .version "$PATCH_JSON")"
+          git commit -m "chore(patch): rebuild tmodloader androidfix $VER [skip ci]"
+          git push
