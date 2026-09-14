@@ -134,19 +134,21 @@ jobs:
           done
 
           echo "Top-level layout:"
-          find tml-extracted -maxdepth 2 | head -n 50
+          # NOTE: '|| true' — head closing the pipe early gives find a
+          # SIGPIPE, which would fail the step under 'pipefail'.
+          find tml-extracted -maxdepth 2 | head -n 50 || true
           echo "Located candidates:"
-          find tml-extracted -iname 'tmodloader.dll' | head -n 20
-          find tml-extracted -iname 'FNA.dll' | head -n 20
+          find tml-extracted -iname 'tmodloader.dll' | head -n 20 || true
+          find tml-extracted -iname 'FNA.dll' | head -n 20 || true
 
           # Main game assembly (contains Terraria.Utils). Prefer the client
           # assembly over the dedicated-server one.
           TML_DLL="$(find tml-extracted -iname 'tmodloader.dll' \
-            | grep -vi server | head -n 1)"
+            | grep -vi server | head -n 1 || true)"
           if [ -z "$TML_DLL" ]; then
-            TML_DLL="$(find tml-extracted -iname 'tmodloader.dll' | head -n 1)"
+            TML_DLL="$(find tml-extracted -iname 'tmodloader.dll' | head -n 1 || true)"
           fi
-          FNA_DLL="$(find tml-extracted -iname 'FNA.dll' | head -n 1)"
+          FNA_DLL="$(find tml-extracted -iname 'FNA.dll' | head -n 1 || true)"
           if [ -z "${TML_DLL:-}" ]; then
             echo "::error::tModLoader.dll not found in release $TAG"
             exit 1
