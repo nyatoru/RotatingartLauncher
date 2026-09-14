@@ -26,6 +26,7 @@ import com.app.ralaunch.core.platform.runtime.RendererEnvironmentConfigurator
 import com.app.ralaunch.feature.patch.data.Patch
 import com.app.ralaunch.feature.patch.data.PatchManager
 import com.app.ralaunch.core.platform.android.ProcessLauncherService
+import com.app.ralaunch.core.platform.android.MemoryTrimmer
 import org.libsdl.app.SDL
 import kotlin.io.path.Path
 import kotlin.io.path.createDirectories
@@ -329,6 +330,22 @@ object GameLauncher {
                 )
                 EnvVarsManager.quickSetEnvVars(resolvedGameEnvVars)
                 AppLog.d(TAG, "游戏环境变量应用完成 / Per-game env vars applied: OK")
+            }
+
+            // 步骤10.5：.NET 启动前整理系统内存（仅可用内存过低时清理后台进程）
+            // Step 10.5: Trim system memory right before .NET starts (only when low)
+            // 大型 Mod（Calamity）在加载期需要数百 MB 连续内存，启动时多出来的
+            // 可用内存直接决定能否一次通过资源加载，避免 OutOfMemoryException。
+            try {
+                MemoryTrimmer.trimBeforeLaunch(appContext)?.let { trim ->
+                    AppLog.i(
+                        TAG,
+                        "启动前内存整理 / Pre-launch trim: " +
+                            "freed~${trim.freedBytes / 1048576} MB, pkgs=${trim.killedPackages}"
+                    )
+                }
+            } catch (e: Exception) {
+                AppLog.w(TAG, "启动前内存整理失败，继续启动 / Pre-launch trim failed, continuing: ${e.message}")
             }
 
             // 步骤11：启动 .NET 运行时
