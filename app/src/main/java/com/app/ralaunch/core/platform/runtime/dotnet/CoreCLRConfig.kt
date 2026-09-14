@@ -28,7 +28,9 @@ object CoreCLRConfig {
 
     /** GCConserveMemory 取值范围 0-9，值越大 GC 越倾向于压缩/归还内存 */
     private const val GC_CONSERVE_MEMORY_LOW_RAM = "5"
-    private const val GC_CONSERVE_MEMORY_VERY_LOW_RAM = "7"
+    // 极低内存档用最大档位：Calamity 这类 Mod 在 4-6 GiB 设备上常驻 4 GB+，
+    // 此时一次 OOM kill 的代价远大于激进压缩带来的零星 GC 卡顿。
+    private const val GC_CONSERVE_MEMORY_VERY_LOW_RAM = "9"
 
     /**
      * 应用 CoreCLR 配置到 native 层
